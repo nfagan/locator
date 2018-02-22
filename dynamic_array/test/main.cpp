@@ -121,19 +121,13 @@ void test_general()
     
     std::cout << "Ellapsed (duplication): " << time_span.count() * 1000 << "(ms)" << std::endl;
     
-    assert(arr3.at(1000) == 1001);
-    
-    arr3.place(102, 0);
-    arr2.place(101, 0);
+    arr3.push(102);
+    arr2.push(101);
     
     assert(arr2.at(0) == 101);
     assert(arr3.at(0) == 102);
     
     dynamic_array<int> arr4 = std::move(arr3);
-    
-    arr3.push(1001);
-    
-    assert(arr3.at(0) == 1001);
     
     dynamic_array<int> arr5(100);
     

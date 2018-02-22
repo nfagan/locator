@@ -50,7 +50,7 @@ private:
     unsigned long m_tail;
     
     void dispose();
-    void create(unsigned long to_size);
+    T* create(unsigned long to_size);
     static unsigned long get_next_size_larger(unsigned long current_size);
     
     static T* allocate(unsigned long with_size);
@@ -65,7 +65,8 @@ util::dynamic_array<T>::dynamic_array(unsigned long initial_size)
 {
     static_assert(std::is_trivially_copyable<T>::value, "Type must be trivially copyable.");
     m_tail = initial_size;
-    create(initial_size);
+    m_size = initial_size;
+    m_elements = create(initial_size);
 }
 
 template<typename T>
@@ -83,7 +84,7 @@ util::dynamic_array<T>::dynamic_array(const util::dynamic_array<T>& other)
 {
     if (other.m_size > 0)
     {
-        create(other.m_size);
+        m_elements = create(other.m_size);
         memcpy(m_elements, other.m_elements, other.m_size * sizeof(T));
     }
     else
@@ -91,6 +92,7 @@ util::dynamic_array<T>::dynamic_array(const util::dynamic_array<T>& other)
         m_elements = nullptr;
     }
     
+    m_size = other.m_size;
     m_tail = other.m_tail;
 }
 
@@ -140,18 +142,14 @@ util::dynamic_array<T>::~dynamic_array() noexcept
 }
 
 template<typename T>
-void util::dynamic_array<T>::create(unsigned long with_size)
+T* util::dynamic_array<T>::create(unsigned long with_size)
 {
     if (with_size == 0)
     {
-        m_elements = nullptr;
-    }
-    else
-    {
-        m_elements = allocate(with_size);
+        return nullptr;
     }
     
-    m_size = with_size;
+    return allocate(with_size);
 }
 
 template<typename T>
@@ -189,7 +187,7 @@ void util::dynamic_array<T>::resize(unsigned long to_size)
     }
     else
     {
-        create(to_size);
+        m_elements = create(to_size);
     }
     
     m_size = to_size;
