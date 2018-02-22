@@ -190,12 +190,12 @@ void util::dynamic_array<T>::resize(unsigned long to_size)
         m_elements = create(to_size);
     }
     
-    m_size = to_size;
-    
-    if (m_size > m_tail)
+    if (to_size <= m_tail)
     {
-        m_tail = m_size;
+        m_tail = to_size;
     }
+    
+    m_size = to_size;
 }
 
 template<typename T>
