@@ -3,38 +3,74 @@
 #include <assert.h>
 #include <chrono>
 #include <vector>
+#include <cstdint>
+
+void test_general();
+void test_push();
 
 int main(int argc, char* argv[])
+{
+    test_push();
+    test_general();
+    
+//    dynamic_array<int> arr6(arr5);
+}
+
+void test_push()
+{
+    using namespace util;
+    
+    std::cout << "Begin push" << std::endl;
+    
+    dynamic_array<uint32_t> arr1;
+    
+    for (uint32_t i = 0; i < 10000; i++)
+    {
+        arr1.push(i);
+    }
+    
+    dynamic_array<uint32_t> arr2(100);
+    
+    for (uint32_t i = 0; i < 10000; i++)
+    {
+        arr2.push(i);
+    }
+    
+    std::cout << "End push" << std::endl;
+}
+
+void test_general()
 {
     using namespace util;
     using namespace std::chrono;
     
-    dynamic_array<int> arr(2);
-    std::vector<int> vec(2);
+    int sz1 = 2;
+    
+    dynamic_array<int> arr(sz1);
+    std::vector<int> vec(sz1);
     
     arr.push(3);
     arr.push(4);
     arr.push(8);
     
-    assert(arr.at(0) == 3);
-    assert(arr.at(1) == 4);
-    assert(arr.at(2) == 8);
+    assert(arr.at(0+sz1) == 3);
+    assert(arr.at(1+sz1) == 4);
+    assert(arr.at(2+sz1) == 8);
     
-    assert(arr.size() == 4);
-    assert(arr.count() == 3);
+    assert(arr.tail() == sz1 + 3);
     
     arr.push(6);
     arr.push(8);
     arr.push(10);
     
     assert(arr.size() == 8);
-    assert(arr.at(5) == 10);
+    assert(arr.at(5+sz1) == 10);
     
     arr.clear();
     arr.clear();
     
     assert(arr.size() == 0);
-    assert(arr.count() == 0);
+    assert(arr.tail() == 0);
     
     arr.push(100);
     arr.push(200);
@@ -59,16 +95,11 @@ int main(int argc, char* argv[])
     duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
     std::cout << "Ellapsed (dynamic_array): " << time_span.count() * 1000 << "(ms)" << std::endl;
     
-    arr.place(1000, new_size+1);
+    arr.place(1000, new_size-1);
     
-    assert(arr.at(new_size+1) == 1000);
-    assert(arr.size() == (new_size+1) * 2);
+    assert(arr.at(new_size-1) == 1000);
     
     dynamic_array<int> arr2(0);
-    
-    arr2.place(1001, 1000);
-    
-    assert(arr2.at(1000) == 1001);
     
     t1 = high_resolution_clock::now();
     
@@ -108,11 +139,9 @@ int main(int argc, char* argv[])
     
     arr5.push(10);
     
-    assert(arr5.size() == 100);
-    assert(arr5.count() == 1);
+    assert(arr5.size() == 200);
+    assert(arr5.tail() == 101);
     arr5.place(88, 99);
-    assert(arr5.count() == 2);
-    assert(arr5.size() == 100);
-    
-//    dynamic_array<int> arr6(arr5);
+    assert(arr5.tail() == 101);
+    assert(arr5.size() == 200);
 }

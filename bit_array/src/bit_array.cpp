@@ -10,19 +10,17 @@
 #include <cstring>
 #include <cmath>
 
-util::bit_array::bit_array() : m_data(0)
+util::bit_array::bit_array()
 {
     m_size = 0;
-//    m_size_int = sizeof(uint32_t);
-    m_size_int = 32;
+    m_size_int = sizeof(uint32_t) * 8u;
 }
 
 util::bit_array::bit_array(uint32_t size)
 {
     m_size = size;
-    m_size_int = sizeof(uint32_t);
-    m_size_int = 32;
-    m_data = util::dynamic_array<uint32_t>(get_data_size(size));
+    m_size_int = sizeof(uint32_t) * 8u;
+    m_data.resize(get_data_size(size));
 }
 
 util::bit_array::~bit_array() noexcept

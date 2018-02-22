@@ -42,13 +42,11 @@ public:
     void clear();
     
     unsigned long size() const;
-    unsigned long count() const;
     unsigned long tail() const;
     
 private:
     T* m_elements;
     unsigned long m_size;
-    unsigned long m_count;
     unsigned long m_tail;
     
     void dispose();
@@ -56,7 +54,6 @@ private:
     static unsigned long get_next_size_larger(unsigned long current_size);
     
     static T* allocate(unsigned long with_size);
-    dynamic_array<T> duplicate() const;
 };
 
 //
@@ -67,8 +64,7 @@ template<typename T>
 util::dynamic_array<T>::dynamic_array(unsigned long initial_size)
 {
     static_assert(std::is_trivially_copyable<T>::value, "Type must be trivially copyable.");
-    m_count = 0;
-    m_tail = 0;
+    m_tail = initial_size;
     create(initial_size);
 }
 
@@ -76,7 +72,6 @@ template<typename T>
 util::dynamic_array<T>::dynamic_array()
 {
     static_assert(std::is_trivially_copyable<T>::value, "Type must be trivially copyable.");
-    m_count = 0;
     m_size = 0;
     m_tail = 0;
     m_elements = nullptr;
@@ -97,7 +92,6 @@ util::dynamic_array<T>::dynamic_array(const util::dynamic_array<T>& other)
     }
     
     m_tail = other.m_tail;
-    m_count = other.m_count;
 }
 
 //  copy-assign
@@ -115,11 +109,9 @@ util::dynamic_array<T>::dynamic_array(util::dynamic_array<T>&& rhs) noexcept
 {
     m_elements = rhs.m_elements;
     m_size = rhs.m_size;
-    m_count = rhs.m_count;
     m_tail = rhs.m_tail;
     
     rhs.m_size = 0;
-    rhs.m_count = 0;
     rhs.m_tail = 0;
     rhs.m_elements = nullptr;
 }
@@ -127,16 +119,14 @@ util::dynamic_array<T>::dynamic_array(util::dynamic_array<T>&& rhs) noexcept
 //  move-assign
 template<typename T>
 util::dynamic_array<T>& util::dynamic_array<T>::operator=(util::dynamic_array<T>&& rhs) noexcept
-{    
+{
     dispose();
     
     m_elements = rhs.m_elements;
     m_size = rhs.m_size;
-    m_count = rhs.m_count;
     m_tail = rhs.m_tail;
     
     rhs.m_size = 0;
-    rhs.m_count = 0;
     rhs.m_tail = 0;
     rhs.m_elements = nullptr;
     
@@ -165,23 +155,6 @@ void util::dynamic_array<T>::create(unsigned long with_size)
 }
 
 template<typename T>
-util::dynamic_array<T> util::dynamic_array<T>::duplicate() const
-{
-    util::dynamic_array<T> dest(m_size);
-    
-    dest.m_count = m_count;
-    
-    if (m_size == 0)
-    {
-        return dest;
-    }
-    
-    memcpy(dest.m_elements, m_elements, m_size * sizeof(T));
-    
-    return dest;
-}
-
-template<typename T>
 T util::dynamic_array<T>::at(unsigned long index) const
 {
     return m_elements[index];
@@ -191,7 +164,6 @@ template<typename T>
 void util::dynamic_array<T>::dispose()
 {
     std::free(m_elements);
-    m_count = 0;
     m_size = 0;
     m_tail = 0;
     m_elements = nullptr;
@@ -230,12 +202,6 @@ unsigned long util::dynamic_array<T>::size() const
 }
 
 template<typename T>
-unsigned long util::dynamic_array<T>::count() const
-{
-    return m_count;
-}
-
-template<typename T>
 unsigned long util::dynamic_array<T>::tail() const
 {
     return m_tail;
@@ -244,7 +210,7 @@ unsigned long util::dynamic_array<T>::tail() const
 template<typename T>
 void util::dynamic_array<T>::push(T element)
 {
-    if (m_count == m_size)
+    if (m_tail == m_size)
     {
         resize(get_next_size_larger(m_size));
     }
@@ -252,7 +218,6 @@ void util::dynamic_array<T>::push(T element)
     m_elements[m_tail] = element;
     
     m_tail++;
-    m_count++;
 }
 
 template<typename T>
@@ -264,15 +229,9 @@ unsigned long util::dynamic_array<T>::get_next_size_larger(unsigned long current
 template<typename T>
 void util::dynamic_array<T>::place(T element, unsigned long at_index)
 {
-    if (at_index > m_size-1 || m_size == 0)
+    if (m_size == 0 || at_index > m_size)
     {
-        m_tail = m_size;
-        resize(get_next_size_larger(at_index));
-    }
-    
-    if (at_index >= m_tail)
-    {
-        m_count++;
+        throw std::runtime_error("Index exceeds array size.");
     }
     
     m_elements[at_index] = element;

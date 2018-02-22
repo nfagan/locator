@@ -17,9 +17,11 @@ double test_append();
 void test_append_multi();
 double test_append_speed(uint32_t sz);
 double ellapsed_time_s(std::chrono::high_resolution_clock::time_point t1, std::chrono::high_resolution_clock::time_point t2);
+void test_basic();
 
 int main(int argc, char* argv[])
 {
+    test_basic();
     test_bit_array();
 //    test_bit_array_copy();
 //    test_threaded_accessor();
@@ -28,6 +30,20 @@ int main(int argc, char* argv[])
     test_keep_multi(1000);
     
     test_append_multi();
+}
+
+void test_basic()
+{    
+    using namespace util;
+    
+    bit_array barray4;
+    barray4.fill(true);
+    
+    for (uint32_t i = 0; i < 10000; i++)
+    {
+//        std::cout << i << std::endl;
+        barray4.push(true);
+    }
 }
 
 void test_append_multi()
@@ -159,16 +175,16 @@ double test_keep(uint32_t sz)
     barray.place(true, 14);
     
     dynamic_array<uint32_t> at_indices(4);
-    at_indices.push(10);
-    at_indices.push(12);
-    at_indices.push(14);
-    at_indices.push(15);
+    at_indices.place(10, 0);
+    at_indices.place(12, 1);
+    at_indices.place(14, 2);
+    at_indices.place(15, 3);
     
     barray.unchecked_keep(at_indices);
     
     t2 = std::chrono::high_resolution_clock::now();
     
-    assert(barray.size() == at_indices.count());
+    assert(barray.size() == at_indices.tail());
     
     assert(barray.at(0));
     assert(barray.at(1));
@@ -337,7 +353,6 @@ double test_fast_threaded_access(uint32_t sz, bool force_use_thread, uint32_t n_
     }
     else
     {
-//        std::cout << "not-using thread" << std::endl;
         bit_array::unchecked_dot_or(x, y, y, 0, x.size());
     }
     
