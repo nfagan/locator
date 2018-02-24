@@ -27,6 +27,7 @@ public:
     bit_array& operator=(bit_array&& other) noexcept;
     
     uint32_t size() const;
+    uint32_t sum() const;
     void push(bool value);
     void place(bool value, uint32_t at_index);
     void unchecked_place(bool value, uint32_t at_index);
@@ -59,4 +60,5 @@ private:
     void unchecked_place(bool value, uint32_t bin, uint32_t bit);
     static void binary_check_dimensions(const bit_array& out, const bit_array& a, const bit_array& b);
     static bool all_bits_set(uint32_t value, uint32_t n);
+    static uint32_t bit_sum(uint32_t i);
 };

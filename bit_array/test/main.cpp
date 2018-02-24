@@ -20,13 +20,15 @@ double ellapsed_time_s(std::chrono::high_resolution_clock::time_point t1, std::c
 void test_basic();
 double test_append_unaligned(uint32_t sz);
 void test_append_unaligned_multi();
+double test_sum(uint32_t sz);
+void test_sum_multi();
 
 int main(int argc, char* argv[])
 {
     test_basic();
+    
+    test_sum_multi();
     test_bit_array();
-//    test_bit_array_copy();
-//    test_threaded_accessor();
     
     test_append_unaligned_multi();
     test_thread2();
@@ -35,6 +37,63 @@ int main(int argc, char* argv[])
     test_append_multi();
     
     return 0;
+}
+
+void test_sum_multi()
+{
+    double mean = 0.0;
+    double iters = 0.0;
+    double total_time = 0.0;
+    uint32_t sz = 1e5;
+    
+    uint32_t n_iters = 1000;
+    
+    for (uint32_t i = 0; i < n_iters; i++)
+    {
+        double res = test_sum(sz);
+        mean = (mean * iters + res) / (iters + 1.0);
+        iters += 1.0;
+        total_time += res;
+    }
+    
+    std::cout << "Mean time: (sum) " << (mean * 1000.0) << " (ms), ";
+    std::cout << sz << " (elements)" << std::endl;
+    std::cout << "Total time: (sum) " << (total_time * 1000.0) << " (ms)" << std::endl;
+    std::cout << "--" << std::endl;
+}
+
+double test_sum(uint32_t sz)
+{
+    using namespace util;
+    using namespace std::chrono;
+    
+    high_resolution_clock::time_point t1;
+    high_resolution_clock::time_point t2;
+    
+    bit_array barray(sz);
+    bit_array barray2(sz);
+    
+    barray.fill(true);
+    barray2.fill(false);
+    
+    uint32_t n_flip = 100;
+    
+    for (uint32_t i = 0; i < n_flip; i++)
+    {
+        barray.place(false, i);
+        barray2.place(true, i);
+    }
+    
+    assert(barray.sum() == sz - n_flip);
+    assert(barray2.sum() == n_flip);
+    
+    t1 = high_resolution_clock::now();
+    
+    uint32_t res = barray.sum();
+    
+    t2 = high_resolution_clock::now();
+    
+    return ellapsed_time_s(t1, t2);
 }
 
 void test_append_unaligned_multi()
@@ -57,6 +116,7 @@ void test_append_unaligned_multi()
     std::cout << "Mean time: (append-unaligned) " << (mean * 1000.0) << " (ms), ";
     std::cout << sz << " (elements)" << std::endl;
     std::cout << "Total time: (append-unaligned) " << (total_time * 1000.0) << " (ms)" << std::endl;
+    std::cout << "--" << std::endl;
 }
 
 double test_append_unaligned(uint32_t sz)
@@ -143,6 +203,7 @@ void test_append_multi()
     std::cout << "Mean time: (append) " << (mean * 1000.0) << " (ms), ";
     std::cout << sz << " (elements)" << std::endl;
     std::cout << "Total time: (append) " << (total_time * 1000.0) << " (ms)" << std::endl;
+    std::cout << "--" << std::endl;
 }
 
 double test_append_speed(uint32_t sz)
@@ -299,6 +360,7 @@ void test_keep_multi(uint32_t n_iters)
     
     std::cout << "Mean time: (keep) " << (mean * 1000.0) << " (ms), ";
     std::cout << sz << " (elements)" << std::endl;
+    std::cout << "--" << std::endl;
 }
 
 void test_thread2()
@@ -319,6 +381,7 @@ void test_thread2()
     
     std::cout << "Mean time: (dot or) " << (mean * 1000.0) << " (ms), ";
     std::cout << sz << " (elements)" << std::endl;
+    std::cout << "--" << std::endl;
 }
 
 void test_threaded_accessor()
@@ -582,8 +645,9 @@ void test_bit_array()
     bit_array::all(barray4);
     t2 = high_resolution_clock::now();
     
-    std::cout << "Total time (find all): " << ellapsed_time_s(t1, t2) * 1000 << " (ms), ";
+    std::cout << "Total time (all): " << ellapsed_time_s(t1, t2) * 1000 << " (ms), ";
     std::cout << barray4.size() << " (elements)" << std::endl;
+    std::cout << "--" << std::endl;
     
     bit_array::unchecked_dot_and(barray4, barray4, barray5, 0, barray4.size());
     
