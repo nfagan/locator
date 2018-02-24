@@ -18,6 +18,8 @@ void test_append_multi();
 double test_append_speed(uint32_t sz);
 double ellapsed_time_s(std::chrono::high_resolution_clock::time_point t1, std::chrono::high_resolution_clock::time_point t2);
 void test_basic();
+double test_append_unaligned(uint32_t sz);
+void test_append_unaligned_multi();
 
 int main(int argc, char* argv[])
 {
@@ -26,10 +28,76 @@ int main(int argc, char* argv[])
 //    test_bit_array_copy();
 //    test_threaded_accessor();
     
+    test_append_unaligned_multi();
     test_thread2();
     test_keep_multi(1000);
     
     test_append_multi();
+    
+    return 0;
+}
+
+void test_append_unaligned_multi()
+{
+    double mean = 0.0;
+    double iters = 0.0;
+    double total_time = 0.0;
+    uint32_t sz = (1e5 + 11);
+    
+    uint32_t n_iters = 1000;
+    
+    for (uint32_t i = 0; i < n_iters; i++)
+    {
+        double res = test_append_unaligned(sz);
+        mean = (mean * iters + res) / (iters + 1.0);
+        iters += 1.0;
+        total_time += res;
+    }
+    
+    std::cout << "Mean time: (append-unaligned) " << (mean * 1000.0) << " (ms), ";
+    std::cout << sz << " (elements)" << std::endl;
+    std::cout << "Total time: (append-unaligned) " << (total_time * 1000.0) << " (ms)" << std::endl;
+}
+
+double test_append_unaligned(uint32_t sz)
+{
+    using namespace util;
+    using namespace std::chrono;
+    
+    high_resolution_clock::time_point t1;
+    high_resolution_clock::time_point t2;
+    
+    int size_a = 102;
+    int size_b = sz;
+    
+    bit_array barray(size_a);
+    bit_array barray2(size_b);
+    
+    bool fill_a = false;
+    bool fill_b = true;
+    
+    barray.fill(fill_a);
+    barray2.fill(fill_b);
+    
+    barray.place(fill_b, size_a - 2);
+    
+    t1 = high_resolution_clock::now();
+    
+    barray.append(barray2);
+    
+    t2 = high_resolution_clock::now();
+    
+    assert(barray.size() == size_a + size_b);
+    
+    assert(barray.at(size_a-1) == fill_a);
+    assert(barray.at(size_a-2) == fill_b);
+    
+    for (uint32_t i = size_a; i < barray.size(); i++)
+    {
+        assert(barray.at(i) == barray2.at(i - size_a));
+    }
+    
+    return ellapsed_time_s(t1, t2);
 }
 
 void test_basic()
@@ -41,9 +109,18 @@ void test_basic()
     
     for (uint32_t i = 0; i < 10000; i++)
     {
-//        std::cout << i << std::endl;
         barray4.push(true);
     }
+    
+    bit_array barray(101);
+    barray.fill(false);
+    
+    for (uint32_t i = 0; i < 10000; i++)
+    {
+        barray.push(true);
+    }
+    
+    assert(barray.at(101));
 }
 
 void test_append_multi()

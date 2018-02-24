@@ -21,6 +21,7 @@ util::bit_array::bit_array(uint32_t size)
     m_size = size;
     m_size_int = sizeof(uint32_t) * 8u;
     m_data.resize(get_data_size(size));
+    m_data.seek_tail_to_end();
 }
 
 util::bit_array::~bit_array() noexcept
@@ -74,7 +75,7 @@ void util::bit_array::push(bool value)
     
     if (bit == 0)
     {
-        m_data.push(0);
+        m_data.push(0u);
     }
     
     unchecked_place(value, bin, bit);
@@ -104,15 +105,14 @@ void util::bit_array::unchecked_place(bool value, uint32_t bin, uint32_t bit)
 {
     uint32_t* data = m_data.unsafe_get_pointer();
     uint32_t current = data[bin];
-    uint32_t one = 1u;
     
     if (value)
     {
-        current = current | (one << bit);
+        current = current | (1u << bit);
     }
     else
     {
-        current = current & ~(one << bit);
+        current = current & ~(1u << bit);
     }
     
     data[bin] = current;
@@ -120,9 +120,8 @@ void util::bit_array::unchecked_place(bool value, uint32_t bin, uint32_t bit)
 
 void util::bit_array::unchecked_keep(const util::dynamic_array<uint32_t> &at_indices)
 {
-    uint32_t new_data_size = get_data_size(at_indices.size());
-    
     uint32_t new_size = at_indices.tail();
+    uint32_t new_data_size = get_data_size(new_size);
     
     util::dynamic_array<uint32_t> tmp(new_data_size);
     
@@ -159,6 +158,12 @@ void util::bit_array::append(const util::bit_array &other)
         return;
     }
     
+    if (m_size == 0)
+    {
+        *this = other;
+        return;
+    }
+    
     uint32_t other_orig_data_size = other.m_data.size();
     uint32_t orig_data_size = m_data.size();
     uint32_t new_data_size = orig_data_size + other_orig_data_size;
@@ -187,24 +192,21 @@ void util::bit_array::append(const util::bit_array &other)
     
     uint32_t bit_offset = m_size_int - last_bit;
     
-    std::cout << bit_offset << std::endl;
+    //  fill remaining elements in final bin with 0
+    uint32_t last_bin0 = ~(0u) >> bit_offset;
     
-    for (uint32_t i = 0; i < other_tail-1; i++)
+    m_data_ptr[orig_tail-1] &= last_bin0;
+
+    for (uint32_t i = 0; i < other_tail; i++)
     {
         uint32_t other0 = other_data_ptr[i];
-        uint32_t other1 = other_data_ptr[i+1];
-        
-        other0 = other0 >> bit_offset;
-        other1 = other1 << bit_offset;
-        
-//        other0 = other0 & ~((1u << bit_offset) - 1u);
-//        other1 = other1 & ~((1u << bit_offset) - 1u);
-        
-        m_data_ptr[orig_tail-1 + i] |= other0;
+        uint32_t other1 = other0;
+
+        other0 = other0 << last_bit;
+        other1 = other1 >> bit_offset;
+
+        m_data_ptr[orig_tail + i - 1] |= other0;
         m_data_ptr[orig_tail + i] |= other1;
-        
-//        m_data_ptr[orig_tail-1 + i] |= (other_data_ptr[i] << bit_offset);
-//        m_data_ptr[orig_tail + i] |= (other_data_ptr[i+1] << bit_offset);
     }
 }
 
@@ -220,7 +222,7 @@ bool util::bit_array::at(uint32_t index) const
     uint32_t bin = get_bin(index);
     uint32_t bit = get_bit(index);
     
-    return m_data.at(bin) & (1u << bit);
+    return m_data.at(bin) & (1 << bit);
 }
 
 uint32_t util::bit_array::size() const
@@ -246,7 +248,7 @@ uint32_t util::bit_array::get_data_size(uint32_t n_elements) const
 
 bool util::bit_array::all_bits_set(uint32_t value, uint32_t n)
 {
-    uint32_t mask = (1u << n) - 1;
+    uint32_t mask = (1 << n) - 1;
     value &= mask;
     return value == mask;
 }

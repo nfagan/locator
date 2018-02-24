@@ -36,6 +36,7 @@ public:
     void push(T element);
     void place(T element, unsigned long at_index);
     void unchecked_place(T element, unsigned long at_index);
+    void seek_tail_to_end();
     T* unsafe_get_pointer() const;
     
     void resize(unsigned long to_size);
@@ -51,8 +52,8 @@ private:
     
     void dispose();
     T* create(unsigned long to_size);
-    static unsigned long get_next_size_larger(unsigned long current_size);
     
+    static unsigned long get_next_size_larger(unsigned long current_size);
     static T* allocate(unsigned long with_size);
 };
 
@@ -190,7 +191,7 @@ void util::dynamic_array<T>::resize(unsigned long to_size)
         m_elements = create(to_size);
     }
     
-    if (to_size <= m_tail)
+    if (to_size < m_tail)
     {
         m_tail = to_size;
     }
@@ -250,6 +251,12 @@ template<typename T>
 T* util::dynamic_array<T>::unsafe_get_pointer() const
 {
     return m_elements;
+}
+
+template<typename T>
+void util::dynamic_array<T>::seek_tail_to_end()
+{
+    m_tail = m_size;
 }
 
 template<typename T>
