@@ -217,6 +217,17 @@ void util::bit_array::fill(bool with)
     std::memset(m_data.unsafe_get_pointer(), fill_with, fill_to * sizeof(uint32_t));
 }
 
+void util::bit_array::flip()
+{
+    uint32_t data_size = get_data_size(m_size);
+    uint32_t* data = m_data.unsafe_get_pointer();
+    
+    for (uint32_t i = 0; i < data_size; i++)
+    {
+        data[i] = ~(data[i]);
+    }
+}
+
 bool util::bit_array::at(uint32_t index) const
 {
     uint32_t bin = get_bin(index);
@@ -268,6 +279,11 @@ uint32_t util::bit_array::get_bin(uint32_t index) const
 uint32_t util::bit_array::get_bit(uint32_t index) const
 {
     return index % m_size_int;
+}
+
+uint32_t util::bit_array::get_linear_index(uint32_t bin, uint32_t bit) const
+{
+    return bin * m_size_int + bit;
 }
 
 uint32_t util::bit_array::get_data_size(uint32_t n_elements) const
@@ -402,4 +418,54 @@ void util::bit_array::binary_check_dimensions(const util::bit_array &out,
     {
         throw std::runtime_error("Dimension mismatch.");
     }
+}
+
+util::dynamic_array<uint32_t> util::bit_array::find(const util::bit_array &a)
+{
+    uint32_t n_true = a.sum();
+    
+    util::dynamic_array<uint32_t> result(n_true);
+    
+    result.seek_tail_to_start();
+    
+    if (n_true == 0)
+    {
+        return result;
+    }
+    
+    uint32_t data_size = a.get_data_size(a.m_size);
+    uint32_t last_bit = a.get_bit(a.m_size);
+    uint32_t* data = a.m_data.unsafe_get_pointer();
+    uint32_t size_int = a.m_size_int;
+    
+    for (size_t i = 0; i < data_size; i++)
+    {
+        uint32_t datum = data[i];
+        
+        if (datum == 0u)
+        {
+            continue;
+        }
+        
+        uint32_t stop_bit;
+        
+        if (i < data_size - 1)
+        {
+            stop_bit = a.m_size_int;
+        }
+        else
+        {
+            stop_bit = last_bit == 0 ? a.m_size_int : last_bit;
+        }
+        
+        for (uint32_t j = 0; j < stop_bit; j++)
+        {
+            if (datum & (1u << j))
+            {
+                result.push(i * size_int + j);
+            }
+        }
+    }
+    
+    return result;
 }

@@ -22,11 +22,14 @@ double test_append_unaligned(uint32_t sz);
 void test_append_unaligned_multi();
 double test_sum(uint32_t sz);
 void test_sum_multi();
+double test_find(uint32_t sz);
+void test_find_multi();
 
 int main(int argc, char* argv[])
 {
     test_basic();
     
+    test_find_multi();
     test_sum_multi();
     test_bit_array();
     
@@ -37,6 +40,108 @@ int main(int argc, char* argv[])
     test_append_multi();
     
     return 0;
+}
+
+void test_find_multi()
+{
+    double mean = 0.0;
+    double iters = 0.0;
+    double total_time = 0.0;
+    uint32_t sz = 1e5 + 2032;
+    
+    uint32_t n_iters = 1000;
+    
+    for (uint32_t i = 0; i < n_iters; i++)
+    {
+        double res = test_find(sz);
+        mean = (mean * iters + res) / (iters + 1.0);
+        iters += 1.0;
+        total_time += res;
+    }
+    
+    std::cout << "Mean time: (find) " << (mean * 1000.0) << " (ms), ";
+    std::cout << sz << " (elements)" << std::endl;
+    std::cout << "Total time: (find) " << (total_time * 1000.0) << " (ms)" << std::endl;
+    std::cout << "--" << std::endl;
+}
+
+double test_find(uint32_t sz)
+{
+    using namespace util;
+    using namespace std::chrono;
+    
+    high_resolution_clock::time_point t1;
+    high_resolution_clock::time_point t2;
+    
+    uint32_t n_indices = 100;
+    uint32_t n_assigned = 0;
+    
+    bit_array barray(sz);
+    dynamic_array<uint32_t> assign_indices(n_indices);
+    
+    assign_indices.seek_tail_to_start();
+    
+    barray.fill(false);
+    
+    for (uint32_t i = 0; i < n_indices; i++)
+    {
+        uint32_t assign_idx = rand() % sz;
+        if (!barray.at(assign_idx))
+        {
+            barray.place(true, assign_idx);
+            assign_indices.push(assign_idx);
+            n_assigned++;
+        }
+    }
+    
+    assert(barray.sum() == n_assigned);
+    
+    t1 = high_resolution_clock::now();
+    
+    dynamic_array<uint32_t> found_indices = bit_array::find(barray);
+    
+    t2 = high_resolution_clock::now();
+    
+    assert(found_indices.tail() == n_assigned);
+    
+    uint32_t* found_data = found_indices.unsafe_get_pointer();
+    
+    for (uint32_t i = 0; i < found_indices.tail(); i++)
+    {
+        assert(barray.at(found_data[i]));
+    }
+    
+    bit_array barray2(sz);
+    
+    barray2.fill(true);
+    
+    assign_indices.resize(0);
+    n_assigned = 0;
+    
+    for (uint32_t i = 0; i < n_indices; i++)
+    {
+        uint32_t assign_idx = rand() % sz;
+        if (barray2.at(assign_idx))
+        {
+            barray2.place(false, assign_idx);
+            assign_indices.push(assign_idx);
+            n_assigned++;
+        }
+    }
+    
+    barray2.flip();
+    
+    found_indices = bit_array::find(barray2);
+    found_data = found_indices.unsafe_get_pointer();
+    
+    assert(found_indices.tail() == n_assigned);
+    
+    for (uint32_t i = 0; i < found_indices.tail(); i++)
+    {
+        assert(barray2.at(found_data[i]));
+    }
+    
+    return ellapsed_time_s(t1, t2);
 }
 
 void test_sum_multi()

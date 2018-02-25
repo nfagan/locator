@@ -37,6 +37,7 @@ public:
     void place(T element, unsigned long at_index);
     void unchecked_place(T element, unsigned long at_index);
     void seek_tail_to_end();
+    void seek_tail_to_start();
     T* unsafe_get_pointer() const;
     
     void resize(unsigned long to_size);
@@ -257,6 +258,12 @@ template<typename T>
 void util::dynamic_array<T>::seek_tail_to_end()
 {
     m_tail = m_size;
+}
+
+template<typename T>
+void util::dynamic_array<T>::seek_tail_to_start()
+{
+    m_tail = 0;
 }
 
 template<typename T>
