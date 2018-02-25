@@ -9,6 +9,7 @@
 
 #include <dynamic_array.hpp>
 #include <bit_array.hpp>
+#include <utilities.hpp>
 #include <cstdint>
 #include <vector>
 
@@ -20,12 +21,12 @@ class util::locator
 {
 public:
     locator();
-    ~locator();
+    ~locator() noexcept;
     
 private:
     util::dynamic_array<uint32_t> m_labels;
-    util::dynamic_array<uint32_t> m_in_category;
     util::dynamic_array<uint32_t> m_categories;
-    util::dynamic_array<uint32_t> by_category;
+    util::dynamic_array<uint32_t> m_in_category;
+    util::dynamic_array<uint32_t> m_by_category;
     std::vector<util::bit_array> m_indices;
 };

@@ -1,7 +1,7 @@
 #include <iostream>
 #include <assert.h>
 #include <chrono>
-#include <bsearch.hpp>
+#include <utilities.hpp>
 #include <vector>
 
 void test_bsearch();

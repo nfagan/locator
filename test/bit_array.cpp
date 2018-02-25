@@ -24,10 +24,12 @@ double test_sum(uint32_t sz);
 void test_sum_multi();
 double test_find(uint32_t sz);
 void test_find_multi();
+void test_any();
 
 int main(int argc, char* argv[])
 {
     test_basic();
+    test_any();
     
     test_find_multi();
     test_sum_multi();
@@ -40,6 +42,36 @@ int main(int argc, char* argv[])
     test_append_multi();
     
     return 0;
+}
+
+void test_any()
+{
+    using namespace util;
+    
+    bit_array barray;
+    
+    uint32_t sz = 101;
+    
+    barray.push(false);
+    barray.push(false);
+    barray.push(false);
+    
+    assert(!bit_array::any(barray));
+    
+    bit_array barray2(sz);
+    
+    barray2.fill(true);
+    
+    assert(bit_array::any(barray2));
+    
+    bit_array barray3(sz);
+    barray3.fill(false);
+    
+    assert(!bit_array::any(barray3));
+    
+    barray3.place(true, sz-1);
+    
+    assert(bit_array::any(barray3));
 }
 
 void test_find_multi()

@@ -9,10 +9,10 @@
 
 util::locator::locator()
 {
-    
+    //
 }
 
-util::locator::~locator()
+util::locator::~locator() noexcept
 {
     
 }
