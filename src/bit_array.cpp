@@ -151,6 +151,22 @@ void util::bit_array::unchecked_keep(const util::dynamic_array<uint32_t> &at_ind
     m_size = new_size;
 }
 
+void util::bit_array::unchecked_assign_true(const util::dynamic_array<uint32_t> &at_indices)
+{
+    uint32_t* at_indices_data = at_indices.unsafe_get_pointer();
+    uint32_t* own_data = m_data.unsafe_get_pointer();
+    uint32_t indices_size = at_indices.tail();
+    
+    for (uint32_t i = 0; i < indices_size; i++)
+    {
+        uint32_t idx = at_indices_data[i];
+        uint32_t bin = get_bin(idx);
+        uint32_t bit = get_bit(idx);
+        
+        own_data[bin] |= (1u << bit);
+    }
+}
+
 void util::bit_array::append(const util::bit_array &other)
 {
     if (other.m_size == 0)

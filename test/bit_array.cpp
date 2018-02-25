@@ -5,6 +5,7 @@
 #include <cmath>
 #include <vector>
 #include <thread>
+#include <utilities.hpp>
 
 void test_bit_array();
 void test_bit_array_copy();
@@ -25,23 +26,53 @@ void test_sum_multi();
 double test_find(uint32_t sz);
 void test_find_multi();
 void test_any();
+void test_assign_true();
 
 int main(int argc, char* argv[])
 {
     test_basic();
     test_any();
-    
+    test_assign_true();
     test_find_multi();
     test_sum_multi();
     test_bit_array();
-    
     test_append_unaligned_multi();
     test_thread2();
     test_keep_multi(1000);
-    
     test_append_multi();
     
     return 0;
+}
+
+void test_assign_true()
+{
+    using namespace util;
+    typedef dynamic_array<uint32_t> data_t;
+    
+    uint32_t sz = 103;
+    uint32_t indices_size = 50;
+    
+    bit_array barray(sz);
+    
+    barray.fill(false);
+    
+    assert(!bit_array::any(barray));
+    
+    data_t at_indices;
+    
+    for (uint32_t i = 0; i < indices_size; i++)
+    {
+        at_indices.push(i);
+    }
+    
+    barray.unchecked_assign_true(at_indices);
+    
+    assert(barray.sum() == at_indices.tail());
+    
+    for (uint32_t i = 0; i < at_indices.tail(); i++)
+    {
+        assert(barray.at(at_indices.at(i)));
+    }
 }
 
 void test_any()

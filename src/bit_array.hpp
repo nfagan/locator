@@ -34,6 +34,7 @@ public:
     void unchecked_place(bool value, uint32_t at_index);
     void append(const bit_array &other);
     void unchecked_keep(const util::dynamic_array<uint32_t> &at_indices);
+    void unchecked_assign_true(const util::dynamic_array<uint32_t> &at_indices);
     
     bool at(uint32_t index) const;
     
