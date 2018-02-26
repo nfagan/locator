@@ -18,6 +18,16 @@ util::locator::~locator() noexcept
     
 }
 
+uint32_t util::locator::add_category(uint32_t category)
+{
+    if (has_category(category))
+    {
+        return util::locator_status::CATEGORY_EXISTS;
+    }
+    
+    
+}
+
 bool util::locator::has_label(uint32_t label) const
 {
     bool was_found;
