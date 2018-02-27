@@ -13,13 +13,13 @@
 util::bit_array::bit_array()
 {
     m_size = 0;
-    m_size_int = sizeof(uint32_t) * 8u;
+    m_size_int = get_size_int();
 }
 
 util::bit_array::bit_array(uint32_t size)
 {
     m_size = size;
-    m_size_int = sizeof(uint32_t) * 8u;
+    m_size_int = get_size_int();
     m_data.resize(get_data_size(size));
     m_data.seek_tail_to_end();
 }
@@ -316,6 +316,11 @@ uint32_t util::bit_array::get_data_size(uint32_t n_elements) const
 {
     double res = double(n_elements) / double(m_size_int);
     return uint32_t(std::ceil(res));
+}
+
+uint32_t util::bit_array::get_size_int() const
+{
+    return sizeof(uint32_t) * 8u;
 }
 
 bool util::bit_array::all_bits_set(uint32_t value, uint32_t n)

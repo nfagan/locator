@@ -67,6 +67,7 @@ private:
     uint32_t get_data_size(uint32_t n_elements) const;
     uint32_t get_final_bin_with_zeros() const;
     uint32_t get_final_bin_with_zeros(uint32_t* data, uint32_t data_size) const;
+    uint32_t get_size_int() const;
     
     void unchecked_place(bool value, uint32_t bin, uint32_t bit);
     static void binary_check_dimensions(const bit_array& out, const bit_array& a, const bit_array& b);

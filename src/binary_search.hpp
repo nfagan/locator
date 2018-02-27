@@ -1,5 +1,5 @@
 //
-//  bsearch.hpp
+//  binary_search.hpp
 //  utilities-test
 //
 //  Created by Nick Fagan on 2/18/18.
@@ -11,7 +11,7 @@
 
 namespace util {
     template<typename T>
-    void unchecked_bsearch(T* in_elements, uint32_t n_elements, T for_value, bool* was_found, uint32_t* at_index);
+    void unchecked_binary_search(T* in_elements, uint32_t n_elements, T for_value, bool* was_found, uint32_t* at_index);
     
     template<typename T>
     bool contains(T* in_elements, uint32_t n_elements, T value);
@@ -23,13 +23,13 @@ bool util::contains(T* in_elements, uint32_t n_elements, T value)
     bool was_found;
     uint32_t dummy_idx;
     
-    util::unchecked_bsearch(in_elements, n_elements, value, &was_found, &dummy_idx);
+    util::unchecked_binary_search(in_elements, n_elements, value, &was_found, &dummy_idx);
     
     return was_found;
 }
 
 template<typename T>
-void util::unchecked_bsearch(T *in_elements, uint32_t n_elements, T for_value, bool *was_found, uint32_t *at_index)
+void util::unchecked_binary_search(T *in_elements, uint32_t n_elements, T for_value, bool *was_found, uint32_t *at_index)
 {
     uint32_t start = 0;
     uint32_t stop = n_elements - 1;

@@ -11,6 +11,7 @@
 #include <cstring>
 #include <new>
 #include <iostream>
+#include <cstdint>
 
 namespace util
 {
@@ -22,7 +23,7 @@ template<typename T>
 class util::dynamic_array
 {
 public:
-    dynamic_array(unsigned long initial_size);
+    dynamic_array(uint32_t initial_size);
     dynamic_array();
     ~dynamic_array() noexcept;
     
@@ -31,31 +32,33 @@ public:
     dynamic_array(dynamic_array<T>&& rhs) noexcept;
     dynamic_array<T>& operator=(dynamic_array<T>&& other) noexcept;
     
-    T at(unsigned long index) const;
+    T at(uint32_t index) const;
     
     void push(T element);
-    void place(T element, unsigned long at_index);
-    void unchecked_place(T element, unsigned long at_index);
+    void place(T element, uint32_t at_index);
+    void insert(T element, uint32_t at_index);
+    void unchecked_place(T element, uint32_t at_index);
     void seek_tail_to_end();
     void seek_tail_to_start();
     T* unsafe_get_pointer() const;
     
-    void resize(unsigned long to_size);
+    void resize(uint32_t to_size);
     void clear();
     
-    unsigned long size() const;
-    unsigned long tail() const;
+    uint32_t size() const;
+    uint32_t tail() const;
     
 private:
     T* m_elements;
-    unsigned long m_size;
-    unsigned long m_tail;
+    uint32_t m_size;
+    uint32_t m_tail;
     
     void dispose();
-    T* create(unsigned long to_size);
+    T* create(uint32_t to_size);
     
-    static unsigned long get_next_size_larger(unsigned long current_size);
-    static T* allocate(unsigned long with_size);
+    static void unchecked_swap(T* data, uint32_t i, uint32_t j);
+    static uint32_t get_next_size_larger(uint32_t current_size);
+    static T* allocate(uint32_t with_size);
 };
 
 //
@@ -63,7 +66,7 @@ private:
 //
 
 template<typename T>
-util::dynamic_array<T>::dynamic_array(unsigned long initial_size)
+util::dynamic_array<T>::dynamic_array(uint32_t initial_size)
 {
     static_assert(std::is_trivially_copyable<T>::value, "Type must be trivially copyable.");
     m_tail = initial_size;
@@ -144,7 +147,7 @@ util::dynamic_array<T>::~dynamic_array() noexcept
 }
 
 template<typename T>
-T* util::dynamic_array<T>::create(unsigned long with_size)
+T* util::dynamic_array<T>::create(uint32_t with_size)
 {
     if (with_size == 0)
     {
@@ -155,7 +158,7 @@ T* util::dynamic_array<T>::create(unsigned long with_size)
 }
 
 template<typename T>
-T util::dynamic_array<T>::at(unsigned long index) const
+T util::dynamic_array<T>::at(uint32_t index) const
 {
     return m_elements[index];
 }
@@ -179,7 +182,7 @@ void util::dynamic_array<T>::clear()
 }
 
 template<typename T>
-void util::dynamic_array<T>::resize(unsigned long to_size)
+void util::dynamic_array<T>::resize(uint32_t to_size)
 {
     size_t dest_size = to_size * sizeof(T);
     
@@ -201,13 +204,13 @@ void util::dynamic_array<T>::resize(unsigned long to_size)
 }
 
 template<typename T>
-unsigned long util::dynamic_array<T>::size() const
+uint32_t util::dynamic_array<T>::size() const
 {
     return m_size;
 }
 
 template<typename T>
-unsigned long util::dynamic_array<T>::tail() const
+uint32_t util::dynamic_array<T>::tail() const
 {
     return m_tail;
 }
@@ -226,13 +229,13 @@ void util::dynamic_array<T>::push(T element)
 }
 
 template<typename T>
-unsigned long util::dynamic_array<T>::get_next_size_larger(unsigned long current_size)
+uint32_t util::dynamic_array<T>::get_next_size_larger(uint32_t current_size)
 {
     return current_size == 0 ? 1 : current_size * 2;
 }
 
 template<typename T>
-void util::dynamic_array<T>::place(T element, unsigned long at_index)
+void util::dynamic_array<T>::place(T element, uint32_t at_index)
 {
     if (m_size == 0 || at_index > m_size)
     {
@@ -243,7 +246,26 @@ void util::dynamic_array<T>::place(T element, unsigned long at_index)
 }
 
 template<typename T>
-void util::dynamic_array<T>::unchecked_place(T element, unsigned long at_index)
+void util::dynamic_array<T>::insert(T element, uint32_t at_index)
+{
+    uint32_t orig_tail = m_tail;
+    
+    if (m_size <= at_index)
+    {
+        resize(get_next_size_larger(at_index+1));
+        m_tail = orig_tail + 1;
+    }
+    
+    for (uint32_t i = orig_tail; i > at_index; i--)
+    {
+        m_elements[i] = m_elements[i-1];
+    }
+    
+    m_elements[at_index] = element;
+}
+
+template<typename T>
+void util::dynamic_array<T>::unchecked_place(T element, uint32_t at_index)
 {    
     m_elements[at_index] = element;
 }
@@ -267,7 +289,15 @@ void util::dynamic_array<T>::seek_tail_to_start()
 }
 
 template<typename T>
-T* util::dynamic_array<T>::allocate(unsigned long with_size)
+void util::dynamic_array<T>::unchecked_swap(T* data, uint32_t i, uint32_t j)
+{
+    T tmp = data[i];
+    data[i] = data[j];
+    data[j] = tmp;
+}
+
+template<typename T>
+T* util::dynamic_array<T>::allocate(uint32_t with_size)
 {
     T* data = (T*) std::malloc(with_size * sizeof(T));
     

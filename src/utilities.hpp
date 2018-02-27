@@ -7,4 +7,5 @@
 
 #pragma once
 
-#include <bsearch.hpp>
+#include <binary_search.hpp>
+#include <quick_sort.hpp>

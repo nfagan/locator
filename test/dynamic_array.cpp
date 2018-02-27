@@ -7,13 +7,45 @@
 
 void test_general();
 void test_push();
+void test_insert();
 
 int main(int argc, char* argv[])
 {
     test_push();
     test_general();
+    for (uint32_t i = 0; i < 10000000; i++)
+        test_insert();
+}
+
+void test_insert()
+{
+    using namespace util;
     
-//    dynamic_array<int> arr6(arr5);
+    dynamic_array<uint32_t> arr1;
+    arr1.seek_tail_to_end();
+
+    arr1.push(10);
+    arr1.push(11);
+    arr1.push(12);
+    arr1.push(13);
+
+    arr1.insert(0, arr1.tail());
+
+//    assert(arr1.at(3) == 1);
+//    assert(arr1.at(0) == 10);
+//    assert(arr1.at(1) == 11);
+//    assert(arr1.at(2) == 12);
+//    assert(arr1.at(4) == 13);
+    
+    dynamic_array<uint32_t> arr2;
+    
+    for (uint32_t i = 0; i < 100; i++)
+    {
+        arr2.push(0);
+    }
+    
+//    arr2.insert(100, 100);
+//    arr2.push(0);
 }
 
 void test_push()
