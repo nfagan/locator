@@ -9,28 +9,29 @@
 
 #include <cstdlib>
 #include <cstring>
-#include <new>
 #include <iostream>
+#include <algorithm>
 #include <cstdint>
+#include <allocators.hpp>
 
 namespace util
 {
-    template<typename T>
+    template<typename T, typename A = util::trivial_allocator<T>>
     class dynamic_array;
 }
 
-template<typename T>
+template<typename T, typename A>
 class util::dynamic_array
 {
 public:
-    dynamic_array(uint32_t initial_size);
+    explicit dynamic_array(uint32_t initial_size);
     dynamic_array();
     ~dynamic_array() noexcept;
     
-    dynamic_array(const dynamic_array<T>& other);
-    dynamic_array<T>& operator=(const dynamic_array<T>& other);
-    dynamic_array(dynamic_array<T>&& rhs) noexcept;
-    dynamic_array<T>& operator=(dynamic_array<T>&& other) noexcept;
+    dynamic_array(const dynamic_array& other);
+    dynamic_array& operator=(const dynamic_array& other);
+    dynamic_array(dynamic_array&& rhs) noexcept;
+    dynamic_array& operator=(dynamic_array&& other) noexcept;
     
     T at(uint32_t index) const;
     
@@ -38,62 +39,64 @@ public:
     void place(T element, uint32_t at_index);
     void insert(T element, uint32_t at_index);
     void unchecked_place(T element, uint32_t at_index);
+    
     void seek_tail_to_end();
     void seek_tail_to_start();
+    
     T* unsafe_get_pointer() const;
     
     void resize(uint32_t to_size);
     void clear();
     
+    void sort();
+    void unchecked_sort(uint32_t end);
+    
     uint32_t size() const;
     uint32_t tail() const;
-    
 private:
     T* m_elements;
     uint32_t m_size;
     uint32_t m_tail;
     
     void dispose();
-    T* create(uint32_t to_size);
     
-    static void unchecked_swap(T* data, uint32_t i, uint32_t j);
     static uint32_t get_next_size_larger(uint32_t current_size);
-    static T* allocate(uint32_t with_size);
 };
 
 //
 //  impl
 //
 
-template<typename T>
-util::dynamic_array<T>::dynamic_array(uint32_t initial_size)
+template<typename T, typename A>
+util::dynamic_array<T, A>::dynamic_array(uint32_t initial_size)
 {
-    static_assert(std::is_trivially_copyable<T>::value, "Type must be trivially copyable.");
+    static_assert(A::is_valid_alloc_t, "Type does not meet allocator requirements.");
     m_tail = initial_size;
     m_size = initial_size;
-    m_elements = create(initial_size);
+    m_elements = A::create(initial_size);
 }
 
-template<typename T>
-util::dynamic_array<T>::dynamic_array()
+template<typename T, typename A>
+util::dynamic_array<T, A>::dynamic_array()
 {
-    static_assert(std::is_trivially_copyable<T>::value, "Type must be trivially copyable.");
+    static_assert(A::is_valid_alloc_t, "Type does not meet allocator requirements.");
     m_size = 0;
     m_tail = 0;
     m_elements = nullptr;
 }
 
 //  copy-construct
-template<typename T>
-util::dynamic_array<T>::dynamic_array(const util::dynamic_array<T>& other)
+template<typename T, typename A>
+util::dynamic_array<T, A>::dynamic_array(const util::dynamic_array<T, A>& other)
 {
     if (other.m_size > 0)
     {
-        m_elements = create(other.m_size);
-        memcpy(m_elements, other.m_elements, other.m_size * sizeof(T));
+        m_elements = A::create(other.m_size);
+        A::copy(m_elements, other.m_elements, other.m_size);
     }
     else
     {
+        A::dispose(m_elements);
         m_elements = nullptr;
     }
     
@@ -102,17 +105,17 @@ util::dynamic_array<T>::dynamic_array(const util::dynamic_array<T>& other)
 }
 
 //  copy-assign
-template<typename T>
-util::dynamic_array<T>& util::dynamic_array<T>::operator=(const util::dynamic_array<T>& other)
+template<typename T, typename A>
+util::dynamic_array<T, A>& util::dynamic_array<T, A>::operator=(const util::dynamic_array<T, A>& other)
 {
-    util::dynamic_array<T> tmp(other);
+    util::dynamic_array<T, A> tmp(other);
     *this = std::move(tmp);
     return *this;
 }
 
 //  move-construct
-template<typename T>
-util::dynamic_array<T>::dynamic_array(util::dynamic_array<T>&& rhs) noexcept
+template<typename T, typename A>
+util::dynamic_array<T, A>::dynamic_array(util::dynamic_array<T, A>&& rhs) noexcept
 {
     m_elements = rhs.m_elements;
     m_size = rhs.m_size;
@@ -124,8 +127,8 @@ util::dynamic_array<T>::dynamic_array(util::dynamic_array<T>&& rhs) noexcept
 }
 
 //  move-assign
-template<typename T>
-util::dynamic_array<T>& util::dynamic_array<T>::operator=(util::dynamic_array<T>&& rhs) noexcept
+template<typename T, typename A>
+util::dynamic_array<T, A>& util::dynamic_array<T, A>::operator=(util::dynamic_array<T, A>&& rhs) noexcept
 {
     dispose();
     
@@ -140,40 +143,29 @@ util::dynamic_array<T>& util::dynamic_array<T>::operator=(util::dynamic_array<T>
     return *this;
 }
 
-template<typename T>
-util::dynamic_array<T>::~dynamic_array() noexcept
+template<typename T, typename A>
+util::dynamic_array<T, A>::~dynamic_array() noexcept
 {
     dispose();
 }
 
-template<typename T>
-T* util::dynamic_array<T>::create(uint32_t with_size)
-{
-    if (with_size == 0)
-    {
-        return nullptr;
-    }
-    
-    return allocate(with_size);
-}
-
-template<typename T>
-T util::dynamic_array<T>::at(uint32_t index) const
+template<typename T, typename A>
+T util::dynamic_array<T, A>::at(uint32_t index) const
 {
     return m_elements[index];
 }
 
-template<typename T>
-void util::dynamic_array<T>::dispose()
+template<typename T, typename A>
+void util::dynamic_array<T, A>::dispose()
 {
-    std::free(m_elements);
+    A::dispose(m_elements);
     m_size = 0;
     m_tail = 0;
     m_elements = nullptr;
 }
 
-template<typename T>
-void util::dynamic_array<T>::clear()
+template<typename T, typename A>
+void util::dynamic_array<T, A>::clear()
 {
     if (m_elements != nullptr)
     {
@@ -181,18 +173,18 @@ void util::dynamic_array<T>::clear()
     }
 }
 
-template<typename T>
-void util::dynamic_array<T>::resize(uint32_t to_size)
+template<typename T, typename A>
+void util::dynamic_array<T, A>::resize(uint32_t to_size)
 {
     size_t dest_size = to_size * sizeof(T);
     
     if (m_elements != nullptr)
     {
-        m_elements = (T*) std::realloc(m_elements, dest_size);
+        m_elements = A::resize(m_elements, dest_size, m_size);
     }
     else
     {
-        m_elements = create(to_size);
+        m_elements = A::create(to_size);
     }
     
     if (to_size < m_tail)
@@ -203,20 +195,20 @@ void util::dynamic_array<T>::resize(uint32_t to_size)
     m_size = to_size;
 }
 
-template<typename T>
-uint32_t util::dynamic_array<T>::size() const
+template<typename T, typename A>
+uint32_t util::dynamic_array<T, A>::size() const
 {
     return m_size;
 }
 
-template<typename T>
-uint32_t util::dynamic_array<T>::tail() const
+template<typename T, typename A>
+uint32_t util::dynamic_array<T, A>::tail() const
 {
     return m_tail;
 }
 
-template<typename T>
-void util::dynamic_array<T>::push(T element)
+template<typename T, typename A>
+void util::dynamic_array<T, A>::push(T element)
 {
     if (m_tail == m_size)
     {
@@ -228,14 +220,14 @@ void util::dynamic_array<T>::push(T element)
     m_tail++;
 }
 
-template<typename T>
-uint32_t util::dynamic_array<T>::get_next_size_larger(uint32_t current_size)
+template<typename T, typename A>
+uint32_t util::dynamic_array<T, A>::get_next_size_larger(uint32_t current_size)
 {
     return current_size == 0 ? 1 : current_size * 2;
 }
 
-template<typename T>
-void util::dynamic_array<T>::place(T element, uint32_t at_index)
+template<typename T, typename A>
+void util::dynamic_array<T, A>::place(T element, uint32_t at_index)
 {
     if (m_size == 0 || at_index > m_size)
     {
@@ -245,66 +237,69 @@ void util::dynamic_array<T>::place(T element, uint32_t at_index)
     m_elements[at_index] = element;
 }
 
-template<typename T>
-void util::dynamic_array<T>::insert(T element, uint32_t at_index)
+template<typename T, typename A>
+void util::dynamic_array<T, A>::insert(T element, uint32_t at_index)
 {
     uint32_t orig_tail = m_tail;
     
-    if (m_size <= at_index)
+    //  if inserting outside the original array bounds,
+    //  resize to `at_index` * 2, and point tail to `at_index`.
+    if (at_index >= m_size)
     {
-        resize(get_next_size_larger(at_index+1));
+        resize(get_next_size_larger(at_index));
+        m_tail = at_index + 1;
+    }
+    else if (orig_tail == m_size)
+    {
+        resize(get_next_size_larger(m_size));
         m_tail = orig_tail + 1;
     }
     
-    for (uint32_t i = orig_tail; i > at_index; i--)
+    uint32_t i = orig_tail;
+    
+    while (i > at_index)
     {
         m_elements[i] = m_elements[i-1];
+        i--;
     }
     
     m_elements[at_index] = element;
 }
 
-template<typename T>
-void util::dynamic_array<T>::unchecked_place(T element, uint32_t at_index)
+template<typename T, typename A>
+void util::dynamic_array<T, A>::unchecked_place(T element, uint32_t at_index)
 {    
     m_elements[at_index] = element;
 }
 
-template<typename T>
-T* util::dynamic_array<T>::unsafe_get_pointer() const
+template<typename T, typename A>
+T* util::dynamic_array<T, A>::unsafe_get_pointer() const
 {
     return m_elements;
 }
 
-template<typename T>
-void util::dynamic_array<T>::seek_tail_to_end()
+template<typename T, typename A>
+void util::dynamic_array<T, A>::seek_tail_to_end()
 {
     m_tail = m_size;
 }
 
-template<typename T>
-void util::dynamic_array<T>::seek_tail_to_start()
+template<typename T, typename A>
+void util::dynamic_array<T, A>::seek_tail_to_start()
 {
     m_tail = 0;
 }
 
-template<typename T>
-void util::dynamic_array<T>::unchecked_swap(T* data, uint32_t i, uint32_t j)
+template<typename T, typename A>
+void util::dynamic_array<T, A>::unchecked_sort(uint32_t end)
 {
-    T tmp = data[i];
-    data[i] = data[j];
-    data[j] = tmp;
+    std::sort(m_elements, m_elements + end);
 }
 
-template<typename T>
-T* util::dynamic_array<T>::allocate(uint32_t with_size)
+template<typename T, typename A>
+void util::dynamic_array<T, A>::sort()
 {
-    T* data = (T*) std::malloc(with_size * sizeof(T));
-    
-    if (data == nullptr)
-    {
-        throw std::bad_alloc();
-    }
-    
-    return data;
+    std::sort(m_elements, m_elements + m_tail);
 }
+
+

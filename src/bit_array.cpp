@@ -51,7 +51,7 @@ util::bit_array::bit_array(util::bit_array&& rhs) noexcept
     m_size = rhs.m_size;
     m_size_int = rhs.m_size_int;
     
-    rhs.m_data = 0;
+    rhs.m_data = util::dynamic_array<uint32_t>(0);
     rhs.m_size = 0;
 }
 
@@ -62,7 +62,7 @@ util::bit_array& util::bit_array::operator=(util::bit_array&& rhs) noexcept
     m_size = rhs.m_size;
     m_size_int = rhs.m_size_int;
     
-    rhs.m_data = 0;
+    rhs.m_data = util::dynamic_array<uint32_t>(0);
     rhs.m_size = 0;
     
     return *this;
