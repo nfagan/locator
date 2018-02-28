@@ -27,7 +27,7 @@ int main(int argc, char* argv[])
     test_general();
 //    test_array_of_array();
 //    test_dynamic_alloc_speed_array_multi();
-    test_dynamic_alloc_speed_vector_multi();
+//    test_dynamic_alloc_speed_vector_multi();
 //    test_insert_multi();
 //    test_push_speed_array_multi();
 //    test_push_speed_vector_multi();
