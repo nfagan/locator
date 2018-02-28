@@ -24,7 +24,7 @@ double ellapsed_time_s(std::chrono::high_resolution_clock::time_point t1, std::c
 int main(int argc, char* argv[])
 {
     test_push();
-    test_general();
+//    test_general();
 //    test_array_of_array();
 //    test_dynamic_alloc_speed_array_multi();
 //    test_dynamic_alloc_speed_vector_multi();
