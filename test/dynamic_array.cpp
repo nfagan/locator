@@ -24,13 +24,13 @@ double ellapsed_time_s(std::chrono::high_resolution_clock::time_point t1, std::c
 int main(int argc, char* argv[])
 {
     test_push();
-//    test_general();
     test_array_of_array();
     test_dynamic_alloc_speed_array_multi();
     test_dynamic_alloc_speed_vector_multi();
-//    test_insert_multi();
-//    test_push_speed_array_multi();
-//    test_push_speed_vector_multi();
+    test_insert_multi();
+    test_push_speed_array_multi();
+    test_push_speed_vector_multi();
+    test_general();
     
     return 0;
 }
@@ -40,7 +40,7 @@ void test_dynamic_alloc_speed_vector_multi()
     double mean = 0.0;
     double iters = 0.0;
     double total_time = 0.0;
-    uint32_t sz = 1e3;
+    uint32_t sz = 1e2;
     
     uint32_t n_iters = 1000;
     
@@ -64,7 +64,7 @@ void test_dynamic_alloc_speed_array_multi()
     double mean = 0.0;
     double iters = 0.0;
     double total_time = 0.0;
-    uint32_t sz = 1e3;
+    uint32_t sz = 1e2;
     
     uint32_t n_iters = 1000;
     
@@ -87,7 +87,7 @@ double test_dynamic_alloc_speed_vector(uint32_t sz)
     using namespace util;
     using namespace std::chrono;
     
-    std::vector<std::string> vec1(sz);
+    std::vector<std::string> vec1;
     high_resolution_clock::time_point t1;
     high_resolution_clock::time_point t2;
     
@@ -109,7 +109,7 @@ double test_dynamic_alloc_speed_array(uint32_t sz)
     using namespace util;
     using namespace std::chrono;
     
-    dynamic_array<std::string, dynamic_allocator<std::string>> arr1(sz);
+    dynamic_array<std::string, dynamic_allocator<std::string>> arr1;
     high_resolution_clock::time_point t1;
     high_resolution_clock::time_point t2;
     
