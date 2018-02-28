@@ -96,7 +96,7 @@ util::dynamic_array<T, A>::dynamic_array(const util::dynamic_array<T, A>& other)
     }
     else
     {
-        A::dispose(m_elements);
+        //A::dispose(m_elements);
         m_elements = nullptr;
     }
     
