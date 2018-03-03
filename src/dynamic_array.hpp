@@ -34,11 +34,16 @@ public:
     dynamic_array& operator=(dynamic_array&& other) noexcept;
     
     T at(uint32_t index) const;
+    T& ref_at(uint32_t index) const;
     
     void push(T element);
     void place(T element, uint32_t at_index);
+    void erase(uint32_t at_index);
     void insert(T element, uint32_t at_index);
     void unchecked_place(T element, uint32_t at_index);
+    
+    bool eq_contents(const dynamic_array<T, A>& other);
+    bool eq_contents(const dynamic_array<T, A>& other, uint32_t end);
     
     void seek_tail_to_end();
     void seek_tail_to_start();
@@ -96,7 +101,6 @@ util::dynamic_array<T, A>::dynamic_array(const util::dynamic_array<T, A>& other)
     }
     else
     {
-        //A::dispose(m_elements);
         m_elements = nullptr;
     }
     
@@ -156,6 +160,12 @@ T util::dynamic_array<T, A>::at(uint32_t index) const
 }
 
 template<typename T, typename A>
+T& util::dynamic_array<T, A>::ref_at(uint32_t index) const
+{
+    return m_elements[index];
+}
+
+template<typename T, typename A>
 void util::dynamic_array<T, A>::dispose()
 {
     A::dispose(m_elements);
@@ -167,10 +177,7 @@ void util::dynamic_array<T, A>::dispose()
 template<typename T, typename A>
 void util::dynamic_array<T, A>::clear()
 {
-    if (m_elements != nullptr)
-    {
-        dispose();
-    }
+    dispose();
 }
 
 template<typename T, typename A>
@@ -267,6 +274,45 @@ void util::dynamic_array<T, A>::insert(T element, uint32_t at_index)
 }
 
 template<typename T, typename A>
+void util::dynamic_array<T, A>::erase(uint32_t at_index)
+{
+    for (uint32_t i = at_index; i < m_tail; i++)
+    {
+        m_elements[i] = m_elements[i+1];
+    }
+    
+    if (m_tail > 0)
+    {
+        m_tail -= 1;
+    }
+}
+
+template<typename T, typename A>
+bool util::dynamic_array<T, A>::eq_contents(const util::dynamic_array<T, A>& other)
+{
+    return eq_contents(other, m_size);
+}
+
+template<typename T, typename A>
+bool util::dynamic_array<T, A>::eq_contents(const util::dynamic_array<T, A>& other, uint32_t end)
+{
+    if (m_size != other.m_size)
+    {
+        return false;
+    }
+    
+    for (uint32_t i = 0; i < end; i++)
+    {
+        if (m_elements[i] != other.m_elements[i])
+        {
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+template<typename T, typename A>
 void util::dynamic_array<T, A>::unchecked_place(T element, uint32_t at_index)
 {    
     m_elements[at_index] = element;
@@ -301,5 +347,3 @@ void util::dynamic_array<T, A>::sort()
 {
     std::sort(m_elements, m_elements + m_tail);
 }
-
-

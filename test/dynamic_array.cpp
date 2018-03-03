@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include <cstdint>
+#include <profile.hpp>
 
 void test_general();
 void test_push();
@@ -20,10 +21,12 @@ double test_dynamic_alloc_speed_vector(uint32_t sz);
 void test_dynamic_alloc_speed_array_multi();
 void test_dynamic_alloc_speed_vector_multi();
 double ellapsed_time_s(std::chrono::high_resolution_clock::time_point t1, std::chrono::high_resolution_clock::time_point t2);
+void test_erase();
 
 int main(int argc, char* argv[])
 {
     test_push();
+    test_erase();
     test_array_of_array();
     test_dynamic_alloc_speed_array_multi();
     test_dynamic_alloc_speed_vector_multi();
@@ -33,6 +36,68 @@ int main(int argc, char* argv[])
     test_general();
     
     return 0;
+}
+
+void test_erase()
+{
+    using namespace util;
+    typedef dynamic_array<uint32_t> arr_t;
+    typedef dynamic_array<arr_t, dynamic_allocator<arr_t>> arr_arr_t;
+    
+    dynamic_array<uint32_t> arr1;
+    uint32_t sz = 1e3;
+    
+    for (uint32_t i = 0; i < sz; i++)
+    {
+        arr1.push(i);
+    }
+    
+    uint32_t at_index = 10;
+    
+    assert(arr1.tail() == sz);
+    
+    arr1.erase(at_index);
+    
+    assert(arr1.tail() == sz-1);
+    
+    for (uint32_t i = 0; i < at_index; i++)
+    {
+        assert(arr1.at(i) == i);
+    }
+    
+    for (uint32_t i = at_index; i < arr1.tail(); i++)
+    {
+        assert(arr1.at(i) == i+1);
+    }
+    
+    arr_arr_t arr_arr1;
+    arr_t arr2;
+    
+    arr2.push(10);
+    arr2.push(20);
+    
+    arr_arr1.push(arr2);
+    arr_arr1.push(arr2);
+    
+    arr_arr1.erase(0);
+    
+    arr_t arr3;
+    
+    arr3.push(10);
+    arr3.push(11);
+    arr3.push(12);
+    
+    assert(arr3.tail() == 3);
+    
+    arr3.erase(0);
+    
+    assert(arr3.tail() == 2);
+    assert(arr3.at(0) == 11);
+    
+    arr3.erase(1);
+    
+    assert(arr3.tail() == 1);
+    assert(arr3.at(0) == 11);
 }
 
 void test_dynamic_alloc_speed_vector_multi()
@@ -306,8 +371,6 @@ void test_push()
 {
     using namespace util;
     
-    std::cout << "Begin push" << std::endl;
-    
     dynamic_array<uint32_t> arr1;
     
     for (uint32_t i = 0; i < 10000; i++)
@@ -321,8 +384,6 @@ void test_push()
     {
         arr2.push(i);
     }
-    
-    std::cout << "End push" << std::endl;
 }
 
 void test_general()

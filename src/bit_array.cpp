@@ -24,6 +24,15 @@ util::bit_array::bit_array(uint32_t size)
     m_data.seek_tail_to_end();
 }
 
+util::bit_array::bit_array(uint32_t size, bool fill_with)
+{
+    m_size = size;
+    m_size_int = get_size_int();
+    m_data.resize(get_data_size(size));
+    m_data.seek_tail_to_end();
+    fill(fill_with);
+}
+
 util::bit_array::~bit_array() noexcept
 {
     //
@@ -116,6 +125,25 @@ void util::bit_array::unchecked_place(bool value, uint32_t bin, uint32_t bit)
     }
     
     data[bin] = current;
+}
+
+void util::bit_array::keep(const util::dynamic_array<uint32_t>& at_indices)
+{
+    for (uint32_t i = 0; i < at_indices.tail(); i++)
+    {
+        if (at_indices.at(i) >= m_size)
+        {
+            throw std::runtime_error("Index exceeds array dimensions.");
+        }
+    }
+    
+    unchecked_keep(at_indices);
+}
+
+void util::bit_array::empty()
+{
+    m_data.clear();
+    m_size = 0;
 }
 
 void util::bit_array::unchecked_keep(const util::dynamic_array<uint32_t> &at_indices)
@@ -376,6 +404,25 @@ void util::bit_array::unchecked_dot_and(util::bit_array &out,
     }
 }
 
+void util::bit_array::unchecked_dot_and_not(util::bit_array &out,
+                                        const util::bit_array &a,
+                                        const util::bit_array &b,
+                                        uint32_t start,
+                                        uint32_t stop)
+{
+    uint32_t first_bin = a.get_bin(start);
+    uint32_t last_bin = a.get_bin(stop);
+    
+    uint32_t* a_data = a.m_data.unsafe_get_pointer();
+    uint32_t* b_data = b.m_data.unsafe_get_pointer();
+    uint32_t* out_data = out.m_data.unsafe_get_pointer();
+    
+    for (size_t i = first_bin; i <= last_bin; i++)
+    {
+        out_data[i] = a_data[i] & ~(b_data[i]);
+    }
+}
+
 void util::bit_array::unchecked_dot_eq(util::bit_array &out,
                                         const util::bit_array &a,
                                         const util::bit_array &b,
@@ -413,6 +460,11 @@ void util::bit_array::dot_and(util::bit_array &out,
 
 bool util::bit_array::unchecked_all(const util::bit_array &a, uint32_t start, uint32_t stop)
 {
+    if (a.m_size == 0)
+    {
+        return false;
+    }
+    
     uint32_t first_bin = a.get_bin(start);
     uint32_t first_bit = a.get_bit(start);
     uint32_t last_bin = a.get_bin(stop);
@@ -443,6 +495,11 @@ bool util::bit_array::all(const util::bit_array &a)
 
 bool util::bit_array::any(const util::bit_array &a)
 {
+    if (a.m_size == 0)
+    {
+        return false;
+    }
+    
     uint32_t* a_data = a.m_data.unsafe_get_pointer();
     uint32_t data_size = a.get_data_size(a.m_size);
     

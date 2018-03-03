@@ -134,6 +134,8 @@ T* util::dynamic_allocator<T>::resize(T* data, uint32_t to_size, uint32_t origin
         new_data[i] = std::move(data[i]);
     }
     
+    delete[] data;
+    
     return new_data;
 }
 

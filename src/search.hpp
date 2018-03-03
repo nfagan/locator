@@ -1,5 +1,5 @@
 //
-//  binary_search.hpp
+//  search.hpp
 //  utilities-test
 //
 //  Created by Nick Fagan on 2/18/18.
@@ -12,6 +12,12 @@
 namespace util {
     template<typename T>
     void unchecked_binary_search(T* in_elements, uint32_t n_elements, T for_value, bool* was_found, uint32_t* at_index);
+    
+    template<typename T>
+    void unchecked_binary_search(T* in_elements, uint32_t n_elements, T for_value, uint32_t* at_index);
+    
+    template<typename T>
+    void unchecked_linear_search(T* in_elements, uint32_t n_elements, T for_value, bool* was_founc, uint32_t* at_index);
     
     template<typename T>
     bool contains(T* in_elements, uint32_t n_elements, T value);
@@ -29,7 +35,31 @@ bool util::contains(T* in_elements, uint32_t n_elements, T value)
 }
 
 template<typename T>
-void util::unchecked_binary_search(T *in_elements, uint32_t n_elements, T for_value, bool *was_found, uint32_t *at_index)
+void util::unchecked_linear_search(T* in_elements, uint32_t n_elements, T for_value, bool* was_found, uint32_t* at_index)
+{
+    *was_found = false;
+    *at_index = 0;
+    
+    for (uint32_t i = 0; i < n_elements; i++)
+    {
+        if (in_elements[i] == for_value)
+        {
+            *was_found = true;
+            *at_index = i;
+            return;
+        }
+    }
+}
+
+template<typename T>
+void util::unchecked_binary_search(T* in_elements, uint32_t n_elements, T for_value, uint32_t* at_index)
+{
+    bool dummy_was_found;
+    util::unchecked_binary_search(in_elements, n_elements, for_value, &dummy_was_found, at_index);
+}
+
+template<typename T>
+void util::unchecked_binary_search(T* in_elements, uint32_t n_elements, T for_value, bool* was_found, uint32_t* at_index)
 {
     uint32_t start = 0;
     uint32_t stop = n_elements - 1;

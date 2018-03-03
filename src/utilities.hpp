@@ -7,5 +7,6 @@
 
 #pragma once
 
-#include <binary_search.hpp>
+#include <search.hpp>
 #include <quick_sort.hpp>
+#include <profile.hpp>
