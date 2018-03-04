@@ -5,7 +5,7 @@
 //  Created by Nick Fagan on 2/28/18.
 //
 
-#include <profile.hpp>
+#include "profile.hpp"
 #include <iostream>
 
 void util::profile::simple(std::function<double(void)> func, std::string alias, uint32_t n_iters)

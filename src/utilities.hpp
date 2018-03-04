@@ -7,6 +7,6 @@
 
 #pragma once
 
-#include <search.hpp>
-#include <quick_sort.hpp>
-#include <profile.hpp>
+#include "search.hpp"
+#include "quick_sort.hpp"
+#include "profile.hpp"

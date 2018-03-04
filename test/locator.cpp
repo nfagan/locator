@@ -1,4 +1,4 @@
-#include <locator.hpp>
+#include "locator.hpp"
 #include <iostream>
 #include <assert.h>
 #include <chrono>
@@ -10,7 +10,10 @@ void test_add_label();
 void test_locate();
 void test_find_one();
 void test_keep();
+void test_set_category();
+void test_set_category_mult_categories();
 void test_empty_and_clear();
+void test_rm_category();
 double test_locate_speed(uint32_t sz);
 double test_add_label_speed(uint32_t sz);
 double test_add_label_speed_with_size_hint(uint32_t sz);
@@ -20,6 +23,8 @@ double test_add_category_speed(uint32_t n_categories);
 void compare_binary_to_linear_search();
 void compare_binary_to_linear_search(uint32_t sz, uint32_t n_iters);
 
+util::bit_array get_randomly_filled_array(uint32_t sz, uint32_t n_true);
+
 int main(int argc, char* argv[])
 {
     using util::profile::simple;
@@ -28,13 +33,16 @@ int main(int argc, char* argv[])
     test_add_category();
     test_find_one();
     test_keep();
+    test_rm_category();
+    test_set_category();
+    test_set_category_mult_categories();
     test_empty_and_clear();
-//    test_locate();
-    
+    test_locate();
+
 //    compare_binary_to_linear_search();
-    
+
     std::cout << "Profiling ... " << std::endl;
-    
+
     simple(std::bind(test_locate_speed, 1e3), "find (1000 elements)", 1e3);
     simple(std::bind(test_dynamic_array_bit_array, 1e3), "push (bit_array, dynamic_array)", 1e3);
     simple(std::bind(test_vector_bit_array, 1e3), "push (bit_array, vector)", 1e3);
@@ -43,6 +51,227 @@ int main(int argc, char* argv[])
     simple(std::bind(test_add_category_speed, 1e3), "add category (1000 categories)", 1e2);
     
     return 0;
+}
+
+util::bit_array get_randomly_filled_array(uint32_t sz, uint32_t n_true)
+{
+    if (n_true > sz)
+    {
+        n_true = sz;
+    }
+    
+    util::bit_array arr(sz, false);
+    
+    for (uint32_t i = 0; i < n_true; i++)
+    {
+        arr.place(true, rand() % sz);
+    }
+    
+    return arr;
+}
+
+void test_rm_category()
+{
+    using namespace util;
+    
+    locator loc;
+    uint32_t res;
+    
+    res = loc.require_category(0);
+    
+    assert(loc.has_category(0));
+    
+    res = loc.rm_category(0);
+    
+    assert(res == locator_status::OK);
+    
+    res = loc.rm_category(0);
+    
+    assert(res == locator_status::CATEGORY_DOES_NOT_EXIST);
+    
+    assert(!loc.has_category(0));
+    
+    res = loc.set_category(0, 10, bit_array(100, true));
+    
+    assert(res == locator_status::CATEGORY_DOES_NOT_EXIST);
+    
+    loc.require_category(0);
+    
+    res = loc.set_category(0, 100, bit_array(100, true));
+    
+    assert(res == locator_status::OK);
+    
+    const types::entries_t& labs = loc.get_labels();
+    
+    assert(labs.tail() == 1 && labs.at(0) == 100);
+    
+    res = loc.rm_category(0);
+    
+    assert(labs.tail() == 0);
+    
+    assert(loc.find(100).tail() == 0);
+    
+    
+    locator loc2;
+    
+    uint32_t loc_sz = 100;
+    uint32_t n_cats = 10;
+    uint32_t n_labs = 1000;
+    
+    for (uint32_t i = 0; i < 1000; i++)
+    {
+        for (uint32_t j = 0; j < n_labs; j++)
+        {
+            bit_array index = get_randomly_filled_array(loc_sz, loc_sz / 2);
+            uint32_t cat = rand() % n_cats;
+            uint32_t lab = j;
+            
+            loc2.require_category(cat);
+            uint32_t res = loc2.set_category(cat, lab, index);
+            
+            assert(res == locator_status::OK);
+        }
+        
+        types::entries_t categories = loc2.get_categories();
+        
+        for (uint32_t j = 0; j < categories.tail(); j++)
+        {
+            uint32_t res = loc2.rm_category(categories.at(j));
+            
+            assert(res == locator_status::OK);
+        }
+        
+        assert(loc2.n_categories() == 0);
+        
+        categories = loc2.get_categories();
+        
+        assert(categories.tail() == 0);
+        
+        if (loc2.n_labels() != 0)
+        {
+            std::cout << loc2.n_labels() << std::endl;
+        }
+        
+        const types::entries_t& labs = loc2.get_labels();
+        
+        assert(labs.tail() == 0);
+    }
+}
+
+void test_set_category_mult_categories()
+{
+    using namespace util;
+    
+    locator loc;
+    
+    uint32_t sz = 100;
+    uint32_t prev_lab;
+    uint32_t prev_cat;
+    uint32_t n_cats = 100;
+    uint32_t iters = 10000;
+    
+    std::unordered_map<uint32_t, dynamic_array<uint32_t>> prev_labs;
+    
+    for (uint32_t i = 0; i < n_cats; i++)
+    {
+        dynamic_array<uint32_t> labels(iters);
+        labels.seek_tail_to_start();
+        prev_labs[i] = labels;
+    }
+    
+    for (uint32_t i = 0; i < iters; i++)
+    {
+        uint32_t lab = rand() % iters;
+        uint32_t cat = rand() % n_cats;
+        
+        loc.require_category(cat);
+        
+        uint32_t* lab_ptr = prev_labs[cat].unsafe_get_pointer();
+        
+        while (i > 0 && contains(lab_ptr, prev_labs[cat].tail(), lab))
+        {
+            lab = rand() % iters;
+        }
+        
+        uint32_t res = loc.set_category(cat, lab, bit_array(sz, true));
+        
+        if (res != locator_status::OK)
+        {
+            assert(res == locator_status::LABEL_EXISTS_IN_OTHER_CATEGORY);
+            continue;
+        }
+        
+        types::entries_t result = loc.find(lab);
+        assert(result.tail() == sz);
+        
+        types::entries_t labs = loc.get_labels();
+        
+        if (labs.tail() != loc.n_categories())
+        {
+            std::cout << "Iter is: " << i << std::endl;
+            std::cout << "Tail is: " << labs.tail() << std::endl;
+            std::cout << "N labels is: " << loc.n_labels() << std::endl;
+            std::cout << "Label is: " << labs.at(0) << std::endl;
+            std::cout << "Categories are: " << loc.n_categories() << std::endl;
+        }
+        
+        assert(labs.tail() == loc.n_categories());
+        
+        if (i > 0)
+        {
+            result = loc.find(prev_lab);
+            
+            if (prev_cat == cat)
+            {
+                assert(result.tail() == 0);
+            }
+            else
+            {
+                assert(result.tail() == sz);
+            }
+        }
+        
+        prev_cat = cat;
+        prev_lab = lab;
+        prev_labs[cat].push(lab);
+    }
+}
+
+void test_set_category()
+{
+    using namespace util;
+    
+    locator loc;
+    
+    loc.add_category(0);
+    uint32_t sz = 100;
+    uint32_t prev_lab;
+    
+    for (uint32_t i = 0; i < 10000; i++)
+    {
+        uint32_t lab = rand() % 10000;
+        
+        while (i > 0 && lab == prev_lab)
+        {
+            lab = rand() % 10000;
+        }
+        
+        loc.set_category(0, lab, bit_array(sz, true));
+        types::entries_t result = loc.find(lab);
+        assert(result.tail() == sz);
+        
+        types::entries_t labs = loc.get_labels();
+        
+        assert(labs.tail() > 0 && labs.at(0) == lab);
+        
+        if (i > 0)
+        {
+            result = loc.find(prev_lab);
+            assert(result.tail() == 0);
+        }
+        
+        prev_lab = lab;
+    }
 }
 
 void test_empty_and_clear()
@@ -435,6 +664,31 @@ double test_locate_speed(uint32_t sz)
 }
 
 void test_locate()
+{
+    using namespace util;
+    
+    uint32_t n_labs = 20;
+    uint32_t sz = 1e4;
+    
+    locator loc(n_labs);
+    
+    types::entries_t all_labels(n_labs);
+    all_labels.seek_tail_to_start();
+    
+    for (uint32_t i = 0; i < n_labs; i++)
+    {
+        loc.add_category(i);
+        loc.set_category(i, i, bit_array(sz, true));
+        
+        all_labels.push(i);
+    }
+    
+    types::entries_t result = loc.find(all_labels);
+    
+    assert(result.tail() == sz);
+}
+
+void test_locate2()
 {
     using namespace util;
     

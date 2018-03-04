@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <dynamic_array.hpp>
+#include "dynamic_array.hpp"
 #include <cstdint>
 
 namespace util {
@@ -36,7 +36,9 @@ public:
     void append(const bit_array &other);
     void keep(const util::dynamic_array<uint32_t> &at_indices);
     void unchecked_keep(const util::dynamic_array<uint32_t> &at_indices);
-    void unchecked_assign_true(const util::dynamic_array<uint32_t> &at_indices);
+    
+    bool assign_true(const util::dynamic_array<uint32_t> &at_indices, int32_t index_offset = 0);
+    void unchecked_assign_true(const util::dynamic_array<uint32_t> &at_indices, int32_t index_offset = 0);
     
     bool at(uint32_t index) const;
     
@@ -59,7 +61,7 @@ public:
     static bool any(const bit_array& a);
     static bool unchecked_all(const bit_array& a, uint32_t start, uint32_t stop);
     
-    static util::dynamic_array<uint32_t> find(const bit_array& a);
+    static util::dynamic_array<uint32_t> find(const bit_array& a, uint32_t index_offset = 0u);
     
 private:
     util::dynamic_array<uint32_t> m_data;

@@ -5,8 +5,8 @@
 //  Created by Nick Fagan on 2/24/18.
 //
 
-#include <locator.hpp>
-#include <utilities.hpp>
+#include "locator.hpp"
+#include "utilities.hpp"
 #include <config.hpp>
 #include <algorithm>
 #include <iostream>
@@ -36,6 +36,55 @@ util::locator::~locator() noexcept
     //
 }
 
+//  copy-construct
+util::locator::locator(const util::locator& other) :
+    m_random_engine(other.m_random_engine),
+    m_labels(other.m_labels),
+    m_in_category(other.m_in_category),
+    m_by_category(other.m_by_category),
+    m_indices(other.m_indices),
+    m_tmp_index(other.m_tmp_index)
+{
+    m_n_labels = other.m_n_labels;
+}
+
+//  copy-assign
+util::locator& util::locator::operator=(const util::locator& other)
+{
+    util::locator tmp(other);
+    *this = std::move(tmp);
+    return *this;
+}
+
+//  move-construct
+util::locator::locator(util::locator&& rhs) noexcept :
+    m_random_engine(std::move(rhs.m_random_engine)),
+    m_labels(std::move(rhs.m_labels)),
+    m_in_category(std::move(rhs.m_in_category)),
+    m_by_category(std::move(rhs.m_by_category)),
+    m_indices(std::move(rhs.m_indices)),
+    m_tmp_index(std::move(rhs.m_tmp_index))
+{
+    m_n_labels = rhs.m_n_labels;
+    rhs.m_n_labels = 0;
+}
+
+//  move-assign
+util::locator& util::locator::operator=(util::locator&& rhs) noexcept
+{
+    m_random_engine = std::move(rhs.m_random_engine);
+    m_labels = std::move(rhs.m_labels);
+    m_in_category = std::move(rhs.m_in_category);
+    m_by_category = std::move(rhs.m_by_category);
+    m_indices = std::move(rhs.m_indices);
+    m_tmp_index = std::move(rhs.m_tmp_index);
+    m_n_labels = rhs.m_n_labels;
+    
+    rhs.m_n_labels = 0;
+    
+    return *this;
+}
+
 const util::types::entries_t& util::locator::get_labels() const
 {
     return m_labels;
@@ -53,15 +102,63 @@ uint32_t util::locator::add_category(uint32_t category)
         return util::locator_status::CATEGORY_EXISTS;
     }
     
-    m_categories.push(category);
-    m_by_category[category] = util::types::entries_t();
-    
-    m_categories.unchecked_sort(m_categories.tail());
+    unchecked_add_category(category);
     
     return util::locator_status::OK;
 }
 
-uint32_t util::locator::set_category(uint32_t category, uint32_t label, const util::bit_array &index)
+uint32_t util::locator::require_category(uint32_t category)
+{
+    if (!has_category(category))
+    {
+        unchecked_add_category(category);
+    }
+    
+    return util::locator_status::OK;
+}
+
+void util::locator::unchecked_add_category(uint32_t category)
+{
+    m_categories.push(category);
+    m_by_category[category] = util::types::entries_t();
+    
+    m_categories.unchecked_sort(m_categories.tail());
+}
+
+uint32_t util::locator::rm_category(uint32_t category)
+{
+    if (!has_category(category))
+    {
+        return util::locator_status::CATEGORY_DOES_NOT_EXIST;
+    }
+    
+    util::types::entries_t& by_category = m_by_category[category];
+    
+    uint32_t n_in_cat = by_category.tail();
+    uint32_t* by_category_ptr = by_category.unsafe_get_pointer();
+    
+    for (uint32_t i = 0; i < n_in_cat; i++)
+    {
+        uint32_t lab = by_category_ptr[i];
+        uint32_t lab_idx = find_label(lab);
+        
+        util::bit_array& ind = m_indices.ref_at(lab_idx);
+        
+        ind.fill(false);
+    }
+    
+    prune();
+    
+    m_by_category.erase(category);
+    
+    uint32_t in_cat_idx = find_category(category);
+    
+    m_categories.erase(in_cat_idx);
+    
+    return util::locator_status::OK;
+}
+
+uint32_t util::locator::set_category(uint32_t category, uint32_t label, const util::bit_array& index)
 {
     if (!has_category(category))
     {
@@ -71,6 +168,8 @@ uint32_t util::locator::set_category(uint32_t category, uint32_t label, const ut
     bool is_present;
     
     uint32_t insert_at = find_label(label, &is_present);
+    
+    util::bit_array* indices_ptr = m_indices.unsafe_get_pointer();
     
     //  make sure we're not trying to add a label
     //  that already exists in another category
@@ -82,11 +181,6 @@ uint32_t util::locator::set_category(uint32_t category, uint32_t label, const ut
         {
             return util::locator_status::LABEL_EXISTS_IN_OTHER_CATEGORY;
         }
-    }
-    
-    if (!util::bit_array::any(index))
-    {
-        return util::locator_status::OK;
     }
     
     uint32_t c_size = size();
@@ -101,14 +195,38 @@ uint32_t util::locator::set_category(uint32_t category, uint32_t label, const ut
         return util::locator_status::WRONG_INDEX_SIZE;
     }
     
+    //  if no elements are true, we can just return early, unless
+    //  we're assigning false to a present label
+    if (!util::bit_array::any(index))
+    {
+        if (!is_present)
+        {
+            return util::locator_status::OK;
+        }
+        
+        indices_ptr[insert_at] = index;
+        
+        prune();
+        
+        return util::locator_status::OK;
+    }
+    
     util::types::entries_t& by_category = m_by_category[category];
     
     uint32_t* by_category_ptr = by_category.unsafe_get_pointer();
+    uint32_t n_by_category = by_category.tail();
     
     //  set false at rows of other indices
-    for (uint32_t i = 0; i < by_category.tail(); i++)
+    for (uint32_t i = 0; i < n_by_category; i++)
     {
         uint32_t lab = by_category_ptr[i];
+        
+        if (lab == label)
+        {
+            indices_ptr[insert_at] = index;
+            continue;
+        }
+        
         uint32_t lab_loc = find_label(lab);
         
         util::bit_array& lab_index = m_indices.ref_at(lab_loc);
@@ -120,17 +238,18 @@ uint32_t util::locator::set_category(uint32_t category, uint32_t label, const ut
     {
         m_labels.insert(label, insert_at);
         m_in_category.insert(category, insert_at);
-        by_category.push(label);
         m_indices.insert(index, insert_at);
+        by_category.push(label);
+        
         m_n_labels++;
+        
+        by_category.sort();
     }
     
     if (c_is_empty)
     {
         m_tmp_index = util::bit_array(index.size());
     }
-    
-    by_category.sort();
     
     if (m_n_labels > 1)
     {
@@ -146,13 +265,15 @@ void util::locator::prune()
     uint32_t* label_ptr = m_labels.unsafe_get_pointer();
     
     int32_t idx_offset = 0;
+    int32_t i = 0;
     
-    for (int32_t i = 0; i < m_n_labels; i++)
+    while (i < m_n_labels)
     {
         int32_t full_idx = i + idx_offset;
         
         if (util::bit_array::any(m_indices.ref_at(full_idx)))
         {
+            i++;
             continue;
         }
         
@@ -174,6 +295,8 @@ void util::locator::prune()
         m_n_labels--;
         
         idx_offset -= 1;
+        
+        i++;
     }
 }
 
@@ -184,6 +307,30 @@ uint32_t util::locator::keep(const util::types::entries_t& at_indices)
         return util::locator_status::OK;
     }
     
+    if (at_indices.tail() == 0)
+    {
+        empty();
+        return util::locator_status::OK;
+    }
+    
+    uint32_t sz = size();
+    uint32_t* at_indices_ptr = at_indices.unsafe_get_pointer();
+    
+    for (uint32_t i = 0; i < at_indices.tail(); i++)
+    {
+        if (at_indices_ptr[i] >= sz)
+        {
+            return util::locator_status::INDEX_OUT_OF_BOUNDS;
+        }
+    }
+    
+    unchecked_keep(at_indices);
+    
+    return util::locator_status::OK;
+}
+
+void util::locator::unchecked_keep(const util::types::entries_t &at_indices)
+{
     for (uint32_t i = 0; i < m_n_labels; i++)
     {
         m_indices.ref_at(i).unchecked_keep(at_indices);
@@ -192,8 +339,6 @@ uint32_t util::locator::keep(const util::types::entries_t& at_indices)
     m_tmp_index.unchecked_keep(at_indices);
     
     prune();
-    
-    return util::locator_status::OK;
 }
 
 void util::locator::clear()
@@ -223,22 +368,7 @@ void util::locator::empty()
     m_n_labels = 0;
 }
 
-util::types::numeric_indices_t util::locator::combinations(const types::entries_t& categories) const
-{
-    util::types::entries_t empty_result;
-    
-    uint32_t* category_ptr = categories.unsafe_get_pointer();
-    
-    for (uint32_t i = 0; i < categories.tail(); i++)
-    {
-        if (!has_category(category_ptr[i]))
-        {
-            return empty_result;
-        }
-    }
-}
-
-util::types::numeric_indices_t util::locator::find(uint32_t label) const
+util::types::numeric_indices_t util::locator::find(uint32_t label, uint32_t index_offset) const
 {
     util::types::numeric_indices_t empty_result;
     
@@ -250,10 +380,10 @@ util::types::numeric_indices_t util::locator::find(uint32_t label) const
         return empty_result;
     }
     
-    return util::bit_array::find(m_indices.ref_at(label_idx));
+    return util::bit_array::find(m_indices.ref_at(label_idx), index_offset);
 }
 
-util::types::numeric_indices_t util::locator::find(const util::types::entries_t& labels)
+util::types::numeric_indices_t util::locator::find(const util::types::entries_t& labels, uint32_t index_offset)
 {
     using util::bit_array;
     
@@ -305,7 +435,7 @@ util::types::numeric_indices_t util::locator::find(const util::types::entries_t&
         bit_array::unchecked_dot_and(m_tmp_index, m_tmp_index, it.second, 0, c_size);
     }
     
-    return bit_array::find(m_tmp_index);
+    return bit_array::find(m_tmp_index, index_offset);
 }
 
 bool util::locator::is_empty() const
@@ -337,9 +467,10 @@ bool util::locator::has_label(uint32_t label) const
 
 bool util::locator::has_category(uint32_t category) const
 {
-    bool was_found;
-    find_category(category, &was_found);
-    return was_found;
+    return m_by_category.find(category) != m_by_category.end();
+//    bool was_found;
+//    find_category(category, &was_found);
+//    return was_found;
 }
 
 uint32_t util::locator::find_label(uint32_t label, bool *was_found) const
@@ -366,6 +497,12 @@ uint32_t util::locator::find_category(uint32_t category, bool *was_found) const
     util::unchecked_binary_search(categories, m_categories.tail(), category, was_found, &idx);
     
     return idx;
+}
+
+uint32_t util::locator::find_category(uint32_t category) const
+{
+    bool dummy;
+    return find_category(category, &dummy);
 }
 
 uint32_t util::locator::get_random_label_id()

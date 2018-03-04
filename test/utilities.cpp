@@ -1,9 +1,9 @@
+#include "utilities.hpp"
+#include "dynamic_array.hpp"
 #include <iostream>
 #include <assert.h>
 #include <chrono>
-#include <utilities.hpp>
 #include <vector>
-#include <dynamic_array.hpp>
 #include <cstdint>
 #include <algorithm>
 

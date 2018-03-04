@@ -149,6 +149,13 @@ void util::bit_array::empty()
 void util::bit_array::unchecked_keep(const util::dynamic_array<uint32_t> &at_indices)
 {
     uint32_t new_size = at_indices.tail();
+    
+    if (new_size == 0)
+    {
+        empty();
+        return;
+    }
+    
     uint32_t new_data_size = get_data_size(new_size);
     
     util::dynamic_array<uint32_t> tmp(new_data_size);
@@ -179,7 +186,7 @@ void util::bit_array::unchecked_keep(const util::dynamic_array<uint32_t> &at_ind
     m_size = new_size;
 }
 
-void util::bit_array::unchecked_assign_true(const util::dynamic_array<uint32_t> &at_indices)
+bool util::bit_array::assign_true(const util::dynamic_array<uint32_t> &at_indices, int32_t index_offset)
 {
     uint32_t* at_indices_data = at_indices.unsafe_get_pointer();
     uint32_t* own_data = m_data.unsafe_get_pointer();
@@ -187,7 +194,32 @@ void util::bit_array::unchecked_assign_true(const util::dynamic_array<uint32_t> 
     
     for (uint32_t i = 0; i < indices_size; i++)
     {
-        uint32_t idx = at_indices_data[i];
+        uint32_t idx = at_indices_data[i] + index_offset;
+        
+        if (idx >= m_size)
+        {
+            return false;
+        }
+        
+        uint32_t bin = get_bin(idx);
+        uint32_t bit = get_bit(idx);
+        
+        own_data[bin] |= (1u << bit);
+    }
+    
+    return true;
+}
+
+
+void util::bit_array::unchecked_assign_true(const util::dynamic_array<uint32_t> &at_indices, int32_t index_offset)
+{
+    uint32_t* at_indices_data = at_indices.unsafe_get_pointer();
+    uint32_t* own_data = m_data.unsafe_get_pointer();
+    uint32_t indices_size = at_indices.tail();
+    
+    for (uint32_t i = 0; i < indices_size; i++)
+    {
+        uint32_t idx = at_indices_data[i] + index_offset;
         uint32_t bin = get_bin(idx);
         uint32_t bit = get_bit(idx);
         
@@ -527,7 +559,7 @@ void util::bit_array::binary_check_dimensions(const util::bit_array &out,
     }
 }
 
-util::dynamic_array<uint32_t> util::bit_array::find(const util::bit_array &a)
+util::dynamic_array<uint32_t> util::bit_array::find(const util::bit_array &a, uint32_t index_offset)
 {
     uint32_t n_true = a.sum();
     
@@ -569,7 +601,7 @@ util::dynamic_array<uint32_t> util::bit_array::find(const util::bit_array &a)
         {
             if (datum & (1u << j))
             {
-                result.push(i * size_int + j);
+                result.push(i * size_int + j + index_offset);
             }
         }
     }

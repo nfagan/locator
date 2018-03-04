@@ -1,11 +1,11 @@
-#include <bit_array.hpp>
+#include "bit_array.hpp"
 #include <iostream>
 #include <assert.h>
 #include <chrono>
 #include <cmath>
 #include <vector>
 #include <thread>
-#include <utilities.hpp>
+#include "utilities.hpp"
 
 void test_bit_array();
 void test_bit_array_copy();

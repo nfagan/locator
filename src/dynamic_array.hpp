@@ -12,7 +12,7 @@
 #include <iostream>
 #include <algorithm>
 #include <cstdint>
-#include <allocators.hpp>
+#include "allocators.hpp"
 
 namespace util
 {
@@ -261,6 +261,10 @@ void util::dynamic_array<T, A>::insert(T element, uint32_t at_index)
         resize(get_next_size_larger(m_size));
         m_tail = orig_tail + 1;
     }
+    else
+    {
+        m_tail++;
+    }
     
     uint32_t i = orig_tail;
     
@@ -283,7 +287,7 @@ void util::dynamic_array<T, A>::erase(uint32_t at_index)
     
     if (m_tail > 0)
     {
-        m_tail -= 1;
+        m_tail--;
     }
 }
 
