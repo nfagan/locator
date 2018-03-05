@@ -1,5 +1,13 @@
 function loc_build( mex_func, sub_dirs )
 
+%   LOC_BUILD -- Build mex files.
+%
+%     IN:
+%       - `mex_func` (char) -- Name of the .cpp file (mex function)
+%       - `sub_dirs` (char, cell array of strings) |OPTIONAL| --
+%         sub-directory in which `mex_func` is located, relative to where
+%         `loc_build.m` is stored.
+
 if ( nargin < 2 )
   sub_dirs = { '' };
 else

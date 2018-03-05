@@ -7,6 +7,7 @@
 #include <thread>
 #include "utilities.hpp"
 
+void test_all();
 void test_bit_array();
 void test_bit_array_copy();
 void test_threaded_accessor();
@@ -25,23 +26,73 @@ double test_sum(uint32_t sz);
 void test_sum_multi();
 double test_find(uint32_t sz);
 void test_find_multi();
-void test_any();
+void test_any_all();
 void test_assign_true();
 
 int main(int argc, char* argv[])
 {
+    std::cout << "BEGIN BIT_ARRAY" << std::endl;
+    test_any_all();
     test_basic();
-    test_any();
+    test_any_all();
     test_assign_true();
     test_find_multi();
     test_sum_multi();
     test_bit_array();
     test_append_unaligned_multi();
-    test_thread2();
+//    test_thread2();
     test_keep_multi(1000);
     test_append_multi();
+//
+    std::cout << "END BIT_ARRAY" << std::endl;
     
     return 0;
+}
+
+void test_any_all()
+{
+    using namespace util;
+    
+    for (uint32_t i = 0; i < 100000; i++)
+    {
+        bit_array barray(i, false);
+        
+        assert(!barray.all());
+        assert(!barray.any());
+        
+        barray.fill(true);
+        
+        if (i == 0)
+        {
+            assert(!barray.any());
+            assert(!barray.all());
+            continue;
+        }
+        
+        assert(barray.any());
+        assert(barray.all());
+        
+        barray.fill(false);
+        
+        if (i < 101)
+        {
+            continue;
+        }
+        
+        for (uint32_t j = 0; j < 100; j++)
+        {
+            uint32_t idx = rand() % 100;
+            barray.place(true, idx);
+        }
+        
+        assert(barray.any());
+        assert(!barray.all());
+    }
+    
+    bit_array barray;
+    
+    assert(!barray.any());
+    assert(!barray.all());
 }
 
 void test_assign_true()
@@ -56,7 +107,7 @@ void test_assign_true()
     
     barray.fill(false);
     
-    assert(!bit_array::any(barray));
+    assert(!barray.any());
     
     data_t at_indices;
     
@@ -87,22 +138,22 @@ void test_any()
     barray.push(false);
     barray.push(false);
     
-    assert(!bit_array::any(barray));
+    assert(!barray.any());
     
     bit_array barray2(sz);
     
     barray2.fill(true);
     
-    assert(bit_array::any(barray2));
+    assert(barray2.any());
     
     bit_array barray3(sz);
     barray3.fill(false);
     
-    assert(!bit_array::any(barray3));
+    assert(!barray3.any());
     
     barray3.place(true, sz-1);
     
-    assert(bit_array::any(barray3));
+    assert(barray3.any());
 }
 
 void test_find_multi()
@@ -411,7 +462,7 @@ double test_append()
     barray3.append(barray4);
     
     assert(barray3.size() == barray4.size());
-    assert(bit_array::all(barray3));
+    assert(barray3.all());
     for (uint32_t i = 0; i < barray3.size(); i++)
     {
         assert(barray3.at(i));
@@ -508,7 +559,7 @@ double test_keep(uint32_t sz)
     
     bit_array::unchecked_dot_eq(barray, barray2, barray, 0, barray.size());
     
-    assert(bit_array::all(barray));
+    assert(barray.all());
     
     return ellapsed_time_s(t1, t2);
 }
@@ -605,7 +656,7 @@ void test_threaded_accessor()
     
     std::cout << "Threaded dot or: " << ellapsed * 1000.0 << " (ms)" << std::endl;
     
-    assert(bit_array::all(barray));
+    assert(barray.all());
     
     //  now non-threaded
     
@@ -810,7 +861,7 @@ void test_bit_array()
     high_resolution_clock::time_point t2;
     
     t1 = high_resolution_clock::now();
-    bit_array::all(barray4);
+    barray4.all();
     t2 = high_resolution_clock::now();
     
     std::cout << "Total time (all): " << ellapsed_time_s(t1, t2) * 1000 << " (ms), ";
@@ -821,7 +872,7 @@ void test_bit_array()
     
     barray4.place(true, barray4.size()-1);
     
-    assert(bit_array::all(barray4));
+    assert(barray4.all());
     
     uint32_t sz6 = 4;
     bit_array barray6(sz6);

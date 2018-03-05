@@ -7,6 +7,7 @@
 #include <string>
 #include <cstdint>
 
+void test_simple();
 void test_general();
 void test_push();
 void test_insert();
@@ -25,6 +26,8 @@ void test_erase();
 
 int main(int argc, char* argv[])
 {
+    std::cout << "BEGIN DYNAMIC ARRAY" << std::endl;
+    test_simple();
     test_push();
     test_erase();
     test_array_of_array();
@@ -35,7 +38,43 @@ int main(int argc, char* argv[])
     test_push_speed_vector_multi();
     test_general();
     
+    std::cout << "END DYNAMIC ARRAY" << std::endl;
     return 0;
+}
+
+void test_simple()
+{
+    using namespace util;
+    
+    typedef dynamic_array<uint32_t> arr_t;
+    typedef dynamic_array<arr_t, dynamic_allocator<arr_t>> arr_arr_t;
+    
+    arr_t arr;
+    arr_arr_t arr_arr(1000);
+    
+    arr_arr.seek_tail_to_start();
+    
+    for (uint32_t i = 0; i < 1000; i++)
+    {
+        arr.push(i);
+    }
+    
+    for (uint32_t i = 0; i < 1000; i++)
+    {
+        arr_arr.push(arr);
+    }
+    
+    uint32_t i = 0;
+
+    while (arr_arr.tail() > 0)
+    {
+        arr_arr.erase(i);
+    }
+//
+    for (uint32_t i = 0; i < 1000; i++)
+    {
+        arr_arr.insert(arr, arr_arr.tail());
+    }
 }
 
 void test_erase()

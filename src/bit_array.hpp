@@ -44,7 +44,11 @@ public:
     
     void fill(bool value);
     void empty();
+    
     void flip();
+    
+    bool all() const;
+    bool any() const;
     
     static void dot_or(bit_array& out, const bit_array& a, const bit_array& b);
     static void dot_and(bit_array& out, const bit_array& a, const bit_array& b);
@@ -57,12 +61,7 @@ public:
     static void unchecked_dot_eq(bit_array& out, const bit_array& a,
                                   const bit_array& b, uint32_t start, uint32_t stop);
     
-    static bool all(const bit_array& a);
-    static bool any(const bit_array& a);
-    static bool unchecked_all(const bit_array& a, uint32_t start, uint32_t stop);
-    
     static util::dynamic_array<uint32_t> find(const bit_array& a, uint32_t index_offset = 0u);
-    
 private:
     util::dynamic_array<uint32_t> m_data;
     
@@ -77,6 +76,9 @@ private:
     uint32_t get_size_int() const;
     
     void unchecked_place(bool value, uint32_t bin, uint32_t bit);
+    
+    bool unchecked_all(uint32_t start, uint32_t stop) const;
+    
     static void binary_check_dimensions(const bit_array& out, const bit_array& a, const bit_array& b);
     static bool all_bits_set(uint32_t value, uint32_t n);
     static uint32_t bit_sum(uint32_t i);

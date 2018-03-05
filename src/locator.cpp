@@ -197,7 +197,7 @@ uint32_t util::locator::set_category(uint32_t category, uint32_t label, const ut
     
     //  if no elements are true, we can just return early, unless
     //  we're assigning false to a present label
-    if (!util::bit_array::any(index))
+    if (!index.any())
     {
         if (!is_present)
         {
@@ -248,7 +248,7 @@ uint32_t util::locator::set_category(uint32_t category, uint32_t label, const ut
     
     if (c_is_empty)
     {
-        m_tmp_index = util::bit_array(index.size());
+        m_tmp_index = util::bit_array(index.size(), false);
     }
     
     if (m_n_labels > 1)
@@ -271,7 +271,7 @@ void util::locator::prune()
     {
         int32_t full_idx = i + idx_offset;
         
-        if (util::bit_array::any(m_indices.ref_at(full_idx)))
+        if (m_indices.ref_at(full_idx).any())
         {
             i++;
             continue;
@@ -307,7 +307,9 @@ uint32_t util::locator::keep(const util::types::entries_t& at_indices)
         return util::locator_status::OK;
     }
     
-    if (at_indices.tail() == 0)
+    uint32_t n_indices = at_indices.tail();
+    
+    if (n_indices == 0)
     {
         empty();
         return util::locator_status::OK;
@@ -316,7 +318,7 @@ uint32_t util::locator::keep(const util::types::entries_t& at_indices)
     uint32_t sz = size();
     uint32_t* at_indices_ptr = at_indices.unsafe_get_pointer();
     
-    for (uint32_t i = 0; i < at_indices.tail(); i++)
+    for (uint32_t i = 0; i < n_indices; i++)
     {
         if (at_indices_ptr[i] >= sz)
         {

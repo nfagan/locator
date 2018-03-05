@@ -284,6 +284,8 @@ void util::rm_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[
     {
         uint32_t res = c_locator.rm_category(cats[i]);
         
+        std::cout << "OK" << std::endl;
+        
         if (res == util::locator_status::OK)
         {
             continue;

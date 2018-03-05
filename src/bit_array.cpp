@@ -54,13 +54,12 @@ util::bit_array& util::bit_array::operator=(const util::bit_array& other)
 }
 
 //  move-construct
-util::bit_array::bit_array(util::bit_array&& rhs) noexcept
+util::bit_array::bit_array(util::bit_array&& rhs) noexcept :
+    m_data(std::move(rhs.m_data))
 {
-    m_data = std::move(rhs.m_data);
     m_size = rhs.m_size;
     m_size_int = rhs.m_size_int;
     
-    rhs.m_data = util::dynamic_array<uint32_t>(0);
     rhs.m_size = 0;
 }
 
@@ -71,7 +70,6 @@ util::bit_array& util::bit_array::operator=(util::bit_array&& rhs) noexcept
     m_size = rhs.m_size;
     m_size_int = rhs.m_size_int;
     
-    rhs.m_data = util::dynamic_array<uint32_t>(0);
     rhs.m_size = 0;
     
     return *this;
@@ -405,7 +403,8 @@ void util::bit_array::unchecked_dot_or(util::bit_array &out,
                                        uint32_t stop)
 {
     uint32_t first_bin = a.get_bin(start);
-    uint32_t last_bin = a.get_bin(stop);
+    uint32_t last_bit = a.get_bit(stop);
+    uint32_t last_bin = last_bit == 0u ? a.get_bin(stop-1) : a.get_bin(stop);
     
     uint32_t* a_data = a.m_data.unsafe_get_pointer();
     uint32_t* b_data = b.m_data.unsafe_get_pointer();
@@ -424,7 +423,8 @@ void util::bit_array::unchecked_dot_and(util::bit_array &out,
                                         uint32_t stop)
 {
     uint32_t first_bin = a.get_bin(start);
-    uint32_t last_bin = a.get_bin(stop);
+    uint32_t last_bit = a.get_bit(stop);
+    uint32_t last_bin = last_bit == 0u ? a.get_bin(stop-1) : a.get_bin(stop);
     
     uint32_t* a_data = a.m_data.unsafe_get_pointer();
     uint32_t* b_data = b.m_data.unsafe_get_pointer();
@@ -443,7 +443,8 @@ void util::bit_array::unchecked_dot_and_not(util::bit_array &out,
                                         uint32_t stop)
 {
     uint32_t first_bin = a.get_bin(start);
-    uint32_t last_bin = a.get_bin(stop);
+    uint32_t last_bit = a.get_bit(stop);
+    uint32_t last_bin = last_bit == 0u ? a.get_bin(stop-1) : a.get_bin(stop);
     
     uint32_t* a_data = a.m_data.unsafe_get_pointer();
     uint32_t* b_data = b.m_data.unsafe_get_pointer();
@@ -462,7 +463,8 @@ void util::bit_array::unchecked_dot_eq(util::bit_array &out,
                                         uint32_t stop)
 {
     uint32_t first_bin = a.get_bin(start);
-    uint32_t last_bin = a.get_bin(stop);
+    uint32_t last_bit = a.get_bit(stop);
+    uint32_t last_bin = last_bit == 0u ? a.get_bin(stop-1) : a.get_bin(stop);
     
     uint32_t* a_data = a.m_data.unsafe_get_pointer();
     uint32_t* b_data = b.m_data.unsafe_get_pointer();
@@ -490,50 +492,57 @@ void util::bit_array::dot_and(util::bit_array &out,
     unchecked_dot_and(out, a, b, 0, a.m_size);
 }
 
-bool util::bit_array::unchecked_all(const util::bit_array &a, uint32_t start, uint32_t stop)
+bool util::bit_array::unchecked_all(uint32_t start, uint32_t stop) const
 {
-    if (a.m_size == 0)
+    if (m_size == 0)
     {
         return false;
     }
     
-    uint32_t first_bin = a.get_bin(start);
-    uint32_t first_bit = a.get_bit(start);
-    uint32_t last_bin = a.get_bin(stop);
-    uint32_t last_bit = a.get_bit(stop);
+    uint32_t first_bin = get_bin(start);
+    uint32_t first_bit = get_bit(start);
+    uint32_t last_bin = get_bin(stop);
+    uint32_t last_bit = get_bit(stop);
     
-    uint32_t* a_data = a.m_data.unsafe_get_pointer();
+    uint32_t* a_data = m_data.unsafe_get_pointer();
     
-    if (!util::bit_array::all_bits_set(a_data[first_bin], first_bit))
+    uint32_t n_check_first = first_bit == 0u ? m_size_int : first_bit;
+    uint32_t n_check_last = first_bit == 0u ? m_size_int : last_bit;
+    
+    if (util::bit_array::bit_sum(a_data[first_bin]) != n_check_first)
     {
         return false;
     }
     
-    for (size_t i = first_bin + 1; i < last_bin; i++)
+    uint32_t stop_idx = last_bit == 0u ? last_bin-1 : last_bin;
+    
+    for (size_t i = first_bin + 1; i < stop_idx; i++)
     {
-        if (!util::bit_array::all_bits_set(a_data[i], a.m_size_int))
+        uint32_t n_check = (i < stop_idx-1) ? m_size_int : n_check_last;
+        
+        if (util::bit_array::bit_sum(a_data[i]) != n_check)
         {
             return false;
         }
     }
     
-    return util::bit_array::all_bits_set(a_data[last_bin], last_bit);
+    return true;
 }
 
-bool util::bit_array::all(const util::bit_array &a)
+bool util::bit_array::all() const
 {
-    return util::bit_array::unchecked_all(a, 0, a.m_size);
+    return unchecked_all(0, m_size);
 }
 
-bool util::bit_array::any(const util::bit_array &a)
+bool util::bit_array::any() const
 {
-    if (a.m_size == 0)
+    if (m_size == 0)
     {
         return false;
     }
     
-    uint32_t* a_data = a.m_data.unsafe_get_pointer();
-    uint32_t data_size = a.get_data_size(a.m_size);
+    uint32_t* a_data = m_data.unsafe_get_pointer();
+    uint32_t data_size = get_data_size(m_size);
     
     for (uint32_t i = 0; i < data_size-1; i++)
     {
@@ -544,7 +553,7 @@ bool util::bit_array::any(const util::bit_array &a)
     }
     
     //  make sure the bits beyond `m_size` are zeroed
-    uint32_t last_datum = a.get_final_bin_with_zeros(a_data, data_size);
+    uint32_t last_datum = get_final_bin_with_zeros(a_data, data_size);
     
     return last_datum != 0u;
 }

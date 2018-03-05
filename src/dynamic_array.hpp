@@ -270,7 +270,7 @@ void util::dynamic_array<T, A>::insert(T element, uint32_t at_index)
     
     while (i > at_index)
     {
-        m_elements[i] = m_elements[i-1];
+        m_elements[i] = std::move(m_elements[i-1]);
         i--;
     }
     
@@ -280,9 +280,9 @@ void util::dynamic_array<T, A>::insert(T element, uint32_t at_index)
 template<typename T, typename A>
 void util::dynamic_array<T, A>::erase(uint32_t at_index)
 {
-    for (uint32_t i = at_index; i < m_tail; i++)
+    for (uint32_t i = at_index; i < m_tail-1; i++)
     {
-        m_elements[i] = m_elements[i+1];
+        m_elements[i] = std::move(m_elements[i+1]);
     }
     
     if (m_tail > 0)

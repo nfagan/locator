@@ -10,6 +10,7 @@ void test_add_label();
 void test_locate();
 void test_find_one();
 void test_keep();
+void test_keep2();
 void test_set_category();
 void test_set_category_mult_categories();
 void test_empty_and_clear();
@@ -27,13 +28,15 @@ util::bit_array get_randomly_filled_array(uint32_t sz, uint32_t n_true);
 
 int main(int argc, char* argv[])
 {
+    std::cout << "BEGIN LOCATOR" << std::endl;
     using util::profile::simple;
     
+    test_keep2();
     test_add_label();
     test_add_category();
     test_find_one();
     test_keep();
-    test_rm_category();
+//    test_rm_category();
     test_set_category();
     test_set_category_mult_categories();
     test_empty_and_clear();
@@ -49,6 +52,8 @@ int main(int argc, char* argv[])
     simple(std::bind(test_add_label_speed, 1e3), "add label (- hint) (1000 labels)", 1e2);
     simple(std::bind(test_add_label_speed_with_size_hint, 1e3), "add label (+ hint) (1000 labels)", 1e2);
     simple(std::bind(test_add_category_speed, 1e3), "add category (1000 categories)", 1e2);
+    
+    std::cout << "END LOCATOR" << std::endl;
     
     return 0;
 }
@@ -68,6 +73,26 @@ util::bit_array get_randomly_filled_array(uint32_t sz, uint32_t n_true)
     }
     
     return arr;
+}
+
+void test_keep2()
+{
+    using namespace util;
+    
+    locator loc;
+    
+    loc.require_category(100);
+    loc.set_category(100, 100, bit_array(100, true));
+    
+    types::entries_t indices(2);
+    
+    indices.place(0, 0);
+    indices.place(1, 1);
+    
+    loc.keep(indices);
+    
+    assert(loc.size() == 2);
+    
 }
 
 void test_rm_category()
@@ -110,6 +135,14 @@ void test_rm_category()
     assert(labs.tail() == 0);
     
     assert(loc.find(100).tail() == 0);
+    
+    
+    locator loc3;
+    
+    loc3.require_category(0);
+    loc3.set_category(0, 100, bit_array(100, true));
+    
+    loc3.rm_category(0);
     
     
     locator loc2;

@@ -10,6 +10,6 @@ function tf = loc_hascat(loc, cats)
 
 op_code = loc_opcodes( 'has_cat' );
 
-tf = loc_api( op_code, loc, cats );
+tf = loc_api( op_code, loc, uint32(cats) );
 
 end

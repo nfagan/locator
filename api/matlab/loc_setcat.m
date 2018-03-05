@@ -18,7 +18,7 @@ else
   inds = indices;
 end
 
-loc_api( op_code, loc, cat, label, inds, rows );
+loc_api( op_code, loc, uint32(cat), uint32(label), inds, rows );
 
 end
 
