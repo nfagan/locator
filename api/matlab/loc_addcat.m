@@ -8,7 +8,7 @@ function loc_addcat( loc, cats )
 
 op_code = loc_opcodes( 'add_cat' );
 
-loc_api( op_code, loc, cats );
+loc_api( op_code, loc, uint32(cats) );
 
 end
 
