@@ -171,11 +171,13 @@ uint32_t util::locator::set_category(uint32_t category, uint32_t label, const ut
     
     util::bit_array* indices_ptr = m_indices.unsafe_get_pointer();
     
+    uint32_t* m_in_category_ptr = m_in_category.unsafe_get_pointer();
+    
     //  make sure we're not trying to add a label
     //  that already exists in another category
     if (is_present)
     {
-        uint32_t c_in_category = m_in_category.at(insert_at);
+        uint32_t c_in_category = m_in_category_ptr[insert_at];
         
         if (c_in_category != category)
         {
