@@ -37,8 +37,6 @@ int main(int argc, char* argv[])
     test_set_category_mult_categories2();
 //    test_set_category_mult_categories();
     
-//    return 0;
-    
     test_keep2();
     test_add_label();
     test_add_category();
@@ -52,8 +50,6 @@ int main(int argc, char* argv[])
     std::cout << "Profiling ... " << std::endl;
 
     simple(std::bind(test_locate_speed, 1e3), "find (1000 elements)", 1e3);
-    simple(std::bind(test_dynamic_array_bit_array, 1e3), "push (bit_array, dynamic_array)", 1e3);
-    simple(std::bind(test_vector_bit_array, 1e3), "push (bit_array, vector)", 1e3);
     simple(std::bind(test_add_label_speed, 1e4), "add label (- hint) (10000 labels)", 1e2);
     simple(std::bind(test_add_label_speed_with_size_hint, 1e4), "add label (+ hint) (10000 labels)", 1e2);
     simple(std::bind(test_add_category_speed, 1e3), "add category (1000 categories)", 1e2);
