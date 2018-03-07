@@ -31,7 +31,7 @@ util::bit_array get_randomly_filled_array(uint32_t sz, uint32_t n_true);
 
 int main(int argc, char* argv[])
 {
-    std::cout << "BEGIN LOCATOR" << std::endl;
+    std::cout << "BEGIN LOCATOR, WITH MAP" << std::endl;
     using util::profile::simple;
     
     test_set_category_mult_categories2();
@@ -58,7 +58,7 @@ int main(int argc, char* argv[])
     simple(std::bind(test_add_label_speed_with_size_hint, 1e3), "add label (+ hint) (1000 labels)", 1e2);
     simple(std::bind(test_add_category_speed, 1e3), "add category (1000 categories)", 1e2);
     
-    std::cout << "END LOCATOR" << std::endl;
+    std::cout << "END LOCATOR, WITH MAP" << std::endl;
     
     return 0;
 }
