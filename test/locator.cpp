@@ -34,7 +34,7 @@ int main(int argc, char* argv[])
     std::cout << "BEGIN LOCATOR" << std::endl;
     using util::profile::simple;
     
-//    test_set_category_mult_categories2();
+    test_set_category_mult_categories2();
 //    test_set_category_mult_categories();
     
 //    return 0;
