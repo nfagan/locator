@@ -472,9 +472,6 @@ bool util::locator::has_label(uint32_t label) const
 bool util::locator::has_category(uint32_t category) const
 {
     return m_by_category.find(category) != m_by_category.end();
-//    bool was_found;
-//    find_category(category, &was_found);
-//    return was_found;
 }
 
 uint32_t util::locator::find_label(uint32_t label, bool *was_found) const
