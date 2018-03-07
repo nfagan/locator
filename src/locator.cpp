@@ -227,7 +227,6 @@ uint32_t util::locator::set_category(uint32_t category, uint32_t label, const ut
         m_n_labels++;
         
         by_category.sort();
-        m_labels.sort();
     }
     
     if (c_is_empty)
@@ -249,32 +248,28 @@ void util::locator::prune()
     
     while (it != m_indices.end())
     {
-        if (!it->second.any())
-        {
-            uint32_t lab = it->first;
-            uint32_t cat = m_in_category[lab];
-            
-            util::types::entries_t& by_category = m_by_category[cat];
-            uint32_t* by_category_ptr = by_category.unsafe_get_pointer();
-            uint32_t* labels_ptr = m_labels.unsafe_get_pointer();
-            
-            uint32_t idx_in_by_category;
-            uint32_t idx_in_labels;
-            
-            util::unchecked_binary_search(by_category_ptr, by_category.tail(), lab, &idx_in_by_category);
-            util::unchecked_binary_search(labels_ptr, m_labels.tail(), lab, &idx_in_labels);
-            
-            by_category.erase(idx_in_by_category);
-            m_labels.erase(idx_in_labels);
-            m_in_category.erase(lab);
-            it = m_indices.erase(it);
-            
-            m_n_labels--;
-        }
-        else
+        if (it->second.any())
         {
             it++;
+            continue;
         }
+        
+        uint32_t lab = it->first;
+        uint32_t cat = m_in_category[lab];
+        
+        util::types::entries_t& by_category = m_by_category[cat];
+        uint32_t* by_category_ptr = by_category.unsafe_get_pointer();
+        
+        uint32_t idx_in_by_category;
+        
+        util::unchecked_binary_search(by_category_ptr, by_category.tail(), lab, &idx_in_by_category);
+        
+        by_category.erase(idx_in_by_category);
+        m_labels.erase(find_label(lab));
+        m_in_category.erase(lab);
+        it = m_indices.erase(it);
+        
+        m_n_labels--;
     }
 }
 
@@ -392,7 +387,7 @@ util::types::numeric_indices_t util::locator::find(const util::types::entries_t&
         const uint32_t category = m_in_category[label];
         const util::bit_array& label_index = m_indices[label];
         
-        if (index_map.count(category) == 0)
+        if (index_map.find(category) == index_map.end())
         {
             index_map[category] = label_index;
         }
