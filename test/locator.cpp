@@ -34,7 +34,7 @@ int main(int argc, char* argv[])
     std::cout << "BEGIN LOCATOR" << std::endl;
     using util::profile::simple;
     
-//    test_set_category_mult_categories2();
+    test_set_category_mult_categories2();
 //    test_set_category_mult_categories();
     
 //    return 0;
@@ -44,7 +44,7 @@ int main(int argc, char* argv[])
     test_add_category();
     test_find_one();
     test_keep();
-    test_rm_category();
+//    test_rm_category();
     test_set_category();
     test_empty_and_clear();
     test_locate();
