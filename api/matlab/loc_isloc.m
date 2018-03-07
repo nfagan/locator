@@ -7,11 +7,7 @@ function tf = loc_isloc(loc)
 %     OUT:
 %       - `tf` (logical)
 
-tf = false( size(loc) );
-
-if ( ~isa(loc, 'uint32') )
-  return;
-end
+loc = uint32( loc );
 
 op_code = loc_opcodes( 'is_loc' );
 

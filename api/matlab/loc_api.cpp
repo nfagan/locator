@@ -5,8 +5,8 @@
 #include <unordered_map>
 
 namespace util {
-    static storage_t locators;
-    static uint32_t next_id = 0;
+    storage_t locators;
+    uint32_t next_id = 0;
 }
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])

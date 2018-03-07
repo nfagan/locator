@@ -76,7 +76,7 @@ public:
     types::entries_t combinations(const types::entries_t& categories) const;
     
     types::numeric_indices_t find(const types::entries_t& labels, uint32_t index_offset = 0u);
-    types::numeric_indices_t find(uint32_t label, uint32_t index_offset = 0u) const;
+    types::numeric_indices_t find(const uint32_t label, uint32_t index_offset = 0u);
     
     types::numeric_indices_t find_all(const types::entries_t &categories);
     
@@ -85,9 +85,9 @@ private:
     
     types::entries_t m_labels;
     types::entries_t m_categories;
-    types::entries_t m_in_category;
+    std::unordered_map<uint32_t, uint32_t> m_in_category;
     std::unordered_map<uint32_t, types::entries_t> m_by_category;
-    types::indices_t m_indices;
+    std::unordered_map<uint32_t, util::bit_array> m_indices;
     util::bit_array m_tmp_index;
     uint32_t m_n_labels;
     
