@@ -31,7 +31,7 @@ util::bit_array get_randomly_filled_array(uint32_t sz, uint32_t n_true);
 
 int main(int argc, char* argv[])
 {
-    std::cout << "BEGIN LOCATOR" << std::endl;
+    std::cout << "BEGIN LOCATOR, WITH ARRAY" << std::endl;
     using util::profile::simple;
     
     test_set_category_mult_categories2();
@@ -54,11 +54,11 @@ int main(int argc, char* argv[])
     simple(std::bind(test_locate_speed, 1e3), "find (1000 elements)", 1e3);
     simple(std::bind(test_dynamic_array_bit_array, 1e3), "push (bit_array, dynamic_array)", 1e3);
     simple(std::bind(test_vector_bit_array, 1e3), "push (bit_array, vector)", 1e3);
-    simple(std::bind(test_add_label_speed, 1e3), "add label (- hint) (1000 labels)", 1e2);
-    simple(std::bind(test_add_label_speed_with_size_hint, 1e3), "add label (+ hint) (1000 labels)", 1e2);
+    simple(std::bind(test_add_label_speed, 1e4), "add label (- hint) (10000 labels)", 1e2);
+    simple(std::bind(test_add_label_speed_with_size_hint, 1e4), "add label (+ hint) (10000 labels)", 1e2);
     simple(std::bind(test_add_category_speed, 1e3), "add category (1000 categories)", 1e2);
     
-    std::cout << "END LOCATOR" << std::endl;
+    std::cout << "END LOCATOR, WITH ARRAY" << std::endl;
     
     return 0;
 }
