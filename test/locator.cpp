@@ -22,8 +22,10 @@ double test_add_label_speed_with_size_hint(uint32_t sz);
 double test_dynamic_array_bit_array(uint32_t sz);
 double test_vector_bit_array(uint32_t sz);
 double test_add_category_speed(uint32_t n_categories);
+void test_arr_insert_search_speed();
 void compare_binary_to_linear_search();
 void compare_binary_to_linear_search(uint32_t sz, uint32_t n_iters);
+void compare_map_to_binary_search();
 
 util::bit_array get_randomly_filled_array(uint32_t sz, uint32_t n_true);
 
@@ -46,8 +48,6 @@ int main(int argc, char* argv[])
     test_set_category();
     test_empty_and_clear();
     test_locate();
-
-//    compare_binary_to_linear_search();
 
     std::cout << "Profiling ... " << std::endl;
 
