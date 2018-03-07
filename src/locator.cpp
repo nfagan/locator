@@ -227,6 +227,7 @@ uint32_t util::locator::set_category(uint32_t category, uint32_t label, const ut
         m_n_labels++;
         
         by_category.sort();
+        m_labels.sort();
     }
     
     if (c_is_empty)
@@ -304,7 +305,7 @@ uint32_t util::locator::keep(const util::types::entries_t& at_indices)
     return util::locator_status::OK;
 }
 
-void util::locator::unchecked_keep(const util::types::entries_t &at_indices)
+void util::locator::unchecked_keep(const util::types::entries_t& at_indices)
 {
     for (auto& it : m_indices)
     {

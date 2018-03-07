@@ -2,7 +2,7 @@ loc_build( 'loc_profile_find.cpp', 'test' );
 
 %%  
 
-n_labs = 100;
+n_labs = 1e3;
 n_search = min( 4, n_labs );
 sz = 1e5;
 n_iters = 1e3;

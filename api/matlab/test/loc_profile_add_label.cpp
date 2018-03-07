@@ -29,6 +29,4 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     loc.add_category(i);
     loc.set_category(i, i, std::move(bit_array(sz, true)));
   }
-  
-  loc.prune();
 }

@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <iostream>
 
-static util::op_map_t op_map({
+const util::op_map_t op_map({
     {"create", util::ops::CREATE},
     {"destroy", util::ops::DESTROY},
     {"add_cat", util::ops::ADD_CATEGORY},

@@ -1,5 +1,11 @@
 function loc_test_from()
 
+if ( isempty(which('get_example_container')) )
+  error( ['This function depends on the `global` repository, available' ...
+    , ' at: https://github.com/nfagan/global. Download / clone the repository' ...
+    , ' and add it to matlab''s search path.'] );
+end
+
 cont = get_example_container();
 
 sp = cont.labels;
@@ -27,5 +33,7 @@ for i = 1:numel(I)
   
   assert( all(find(sp_ind) == loc_ind) );
 end
+
+loc_destroy( loc );
 
 end

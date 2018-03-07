@@ -42,7 +42,7 @@ int main(int argc, char* argv[])
     test_add_category();
     test_find_one();
     test_keep();
-//    test_rm_category();
+    test_rm_category();
     test_set_category();
     test_empty_and_clear();
     test_locate();
@@ -178,11 +178,6 @@ void test_rm_category()
         categories = loc2.get_categories();
         
         assert(categories.tail() == 0);
-        
-        if (loc2.n_labels() != 0)
-        {
-            std::cout << loc2.n_labels() << std::endl;
-        }
         
         const types::entries_t& labs = loc2.get_labels();
         
