@@ -19,7 +19,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     util::assert_scalar(prhs[0], "locator:main", "Op-code must be scalar.");
     
-    uint32_t op_code = (uint32_t) mxGetScalar(prhs[0]);  
+    uint32_t op_code = (uint32_t) mxGetScalar(prhs[0]);
     
     switch (op_code)
     {
