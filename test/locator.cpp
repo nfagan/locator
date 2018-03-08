@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <functional>
 
+void test_eq_contents();
 void test_add_category();
 void test_add_label();
 void test_locate();
@@ -37,12 +38,13 @@ int main(int argc, char* argv[])
     test_set_category_mult_categories2();
 //    test_set_category_mult_categories();
     
+    test_eq_contents();
     test_keep2();
     test_add_label();
     test_add_category();
     test_find_one();
     test_keep();
-//    test_rm_category();
+    test_rm_category();
     test_set_category();
     test_empty_and_clear();
     test_locate();
@@ -74,6 +76,61 @@ util::bit_array get_randomly_filled_array(uint32_t sz, uint32_t n_true)
     }
     
     return arr;
+}
+
+void test_eq_contents()
+{
+    using namespace util;
+    
+    locator loc;
+    
+    uint32_t sz = 100;
+    
+    util::bit_array index0 = get_randomly_filled_array(sz, 20);
+    util::bit_array index1 = get_randomly_filled_array(sz, 30);
+    util::bit_array check = get_randomly_filled_array(sz, 0);
+    
+    util::bit_array::unchecked_dot_eq(check, index0, index1, 0, index0.size());
+    
+    //  ensure the index is not the same to begin with
+    while (check.all())
+    {
+        check.fill(false);
+        
+        util::bit_array index1 = get_randomly_filled_array(sz, 30);
+        util::bit_array::unchecked_dot_eq(check, index0, index1, 0, index0.size());
+    }
+    
+    util::bit_array index0_copy = index0;
+    
+    loc.require_category(0);
+    loc.require_category(1);
+    
+    loc.set_category(0, 10, index0);
+    loc.set_category(1, 11, index1);
+    
+    locator loc2 = loc;
+    
+    locator loc3;
+    locator loc4;
+    
+    loc4.require_category(0);
+    loc4.require_category(1);
+    
+    loc4.set_category(0, 10, index0);
+    loc4.set_category(1, 11, index1);
+    
+    assert(loc2 == loc);
+    assert(loc != loc3);
+    assert(loc4 == loc);
+    
+    locator loc5 = loc4;
+    
+    assert(loc4 == loc5);
+    
+    loc5.set_category(1, 12, index1);
+    
+    assert(loc4 != loc5);
 }
 
 void test_keep2()

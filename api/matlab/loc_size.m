@@ -2,6 +2,8 @@ function sz = loc_size(loc)
 
 %   LOC_SIZE -- Get the number of rows in the locator.
 %
+%     See also loc_isempty, loc_empty, loc_clear
+%
 %     IN:
 %       - `loc` (uint32) -- Locator id.
 %     OUT:

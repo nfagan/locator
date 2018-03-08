@@ -35,7 +35,7 @@ public:
     void unchecked_place(bool value, uint32_t at_index);
     void append(const bit_array &other);
     void keep(const util::dynamic_array<uint32_t> &at_indices);
-    void unchecked_keep(const util::dynamic_array<uint32_t> &at_indices);
+    void unchecked_keep(const util::dynamic_array<uint32_t> &at_indices, int32_t index_offset = 0);
     
     bool assign_true(const util::dynamic_array<uint32_t> &at_indices, int32_t index_offset = 0);
     void unchecked_assign_true(const util::dynamic_array<uint32_t> &at_indices, int32_t index_offset = 0);
@@ -76,8 +76,6 @@ private:
     uint32_t get_size_int() const;
     
     void unchecked_place(bool value, uint32_t bin, uint32_t bit);
-    
-    bool unchecked_all(uint32_t start, uint32_t stop) const;
     
     static void binary_check_dimensions(const bit_array& out, const bit_array& a, const bit_array& b);
     static bool all_bits_set(uint32_t value, uint32_t n);

@@ -2,6 +2,8 @@ function instances = loc_instances()
 
 %   LOC_INSTANCES -- Return ids of all active locators.
 %
+%     See also loc_create, loc_destroy
+%
 %     OUT:
 %       - `instances` (uint32) -- Handle(s) to active locators.
 

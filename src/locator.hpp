@@ -49,7 +49,10 @@ public:
     
     ~locator() noexcept;
     
-    void unchecked_keep(const util::types::entries_t& at_indices);
+    bool operator ==(const util::locator& other) const;
+    bool operator !=(const util::locator& other) const;
+    
+    void unchecked_keep(const util::types::entries_t& at_indices, int32_t index_offset = 0);
     uint32_t keep(const util::types::entries_t& at_indices);
     
     void clear();
@@ -58,8 +61,9 @@ public:
     uint32_t add_category(uint32_t category);
     uint32_t set_category(uint32_t category, uint32_t label, const util::bit_array& index);
     uint32_t rm_category(uint32_t category);
-    
     uint32_t require_category(uint32_t category);
+    
+    uint32_t which_category(uint32_t label, bool* exists) const;
     
     bool has_label(uint32_t label) const;
     bool has_category(uint32_t category) const;
@@ -72,6 +76,9 @@ public:
     uint32_t size() const;
     uint32_t n_labels() const;
     uint32_t n_categories() const;
+    
+    bool categories_match(const util::locator& other) const;
+    bool labels_match(const util::locator& other) const;
     
     types::entries_t combinations(const types::entries_t& categories) const;
     

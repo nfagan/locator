@@ -18,7 +18,10 @@ const util::op_map_t op_map({
     {"size", util::ops::SIZE},
     {"keep", util::ops::KEEP},
     {"copy", util::ops::COPY},
-    {"instances", util::ops::INSTANCES}
+    {"instances", util::ops::INSTANCES},
+    {"which_cat", util::ops::WHICH_CATEGORY},
+    {"has_lab", util::ops::HAS_LABEL},
+    {"eq", util::ops::EQUALS}
 });
 
 void use_std_string(mxArray *plhs[], const mxArray *prhs[]);

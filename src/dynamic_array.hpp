@@ -42,8 +42,8 @@ public:
     void insert(T element, uint32_t at_index);
     void unchecked_place(T element, uint32_t at_index);
     
-    bool eq_contents(const dynamic_array<T, A>& other);
-    bool eq_contents(const dynamic_array<T, A>& other, uint32_t end);
+    bool eq_contents(const dynamic_array<T, A>& other) const;
+    bool eq_contents(const dynamic_array<T, A>& other, uint32_t end) const;
     
     void seek_tail_to_end();
     void seek_tail_to_start();
@@ -292,15 +292,15 @@ void util::dynamic_array<T, A>::erase(uint32_t at_index)
 }
 
 template<typename T, typename A>
-bool util::dynamic_array<T, A>::eq_contents(const util::dynamic_array<T, A>& other)
+bool util::dynamic_array<T, A>::eq_contents(const util::dynamic_array<T, A>& other) const
 {
     return eq_contents(other, m_size);
 }
 
 template<typename T, typename A>
-bool util::dynamic_array<T, A>::eq_contents(const util::dynamic_array<T, A>& other, uint32_t end)
+bool util::dynamic_array<T, A>::eq_contents(const util::dynamic_array<T, A>& other, uint32_t end) const
 {
-    if (m_size != other.m_size)
+    if (end > m_size || end > other.m_size)
     {
         return false;
     }

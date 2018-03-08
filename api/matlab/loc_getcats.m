@@ -2,6 +2,8 @@ function cats = loc_getcats(loc)
 
 %   LOC_GETCATS -- Get the category(ies) in the locator.
 %
+%     See also loc_getlabs, loc_whichcat, loc_hascat
+%
 %     IN:
 %       - `loc` (uint32) -- Locator id.
 %     OUT:

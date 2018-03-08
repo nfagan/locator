@@ -21,6 +21,9 @@ namespace util {
         constexpr uint32_t COPY = 12u;
         constexpr uint32_t INSTANCES = 13u;
         constexpr uint32_t RM_CATEGORY = 14u;
+        constexpr uint32_t WHICH_CATEGORY = 15u;
+        constexpr uint32_t HAS_LABEL = 16u;
+        constexpr uint32_t EQUALS = 17u;
     };
     
     typedef std::unordered_map<std::string, uint32_t> op_map_t;

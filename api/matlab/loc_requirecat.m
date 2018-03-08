@@ -1,10 +1,12 @@
-function loc_requirecat(loc, cats)
+function loc = loc_requirecat(loc, cats)
 
 %   LOC_REQUIRECAT -- Add category(ies) if they do not already exist.
 %
 %     IN:
 %       - `loc` (uint32) -- Locator id.
 %       - `cats` (uint32) -- Categories.
+%     OUT:
+%       - `loc` (uint32) -- Locator id.
 
 op_code = loc_opcodes( 'require_cat' );
 

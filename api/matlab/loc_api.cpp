@@ -71,12 +71,28 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             util::size(nlhs, plhs, nrhs, prhs);
             return;
             
+        case util::ops::KEEP:
+            util::keep(nlhs, plhs, nrhs, prhs);
+            return;        
+            
         case util::ops::COPY:
             util::copy(nlhs, plhs, nrhs, prhs);
             return;
             
         case util::ops::INSTANCES:
             util::instances(nlhs, plhs, nrhs, prhs);
+            return;
+            
+        case util::ops::WHICH_CATEGORY:
+            util::which_category(nlhs, plhs, nrhs, prhs);
+            return;
+            
+        case util::ops::HAS_LABEL:
+            util::has_label(nlhs, plhs, nrhs, prhs);
+            return;
+            
+        case util::ops::EQUALS:
+            util::equals(nlhs, plhs, nrhs, prhs);
             return;
             
         default:
@@ -89,7 +105,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 //  implementation
 //
 
-void util::copy_entries_into_array(types::entries_t& src, mxArray* dest, uint32_t n_copy)
+void util::copy_entries_into_array(const util::types::entries_t& src, mxArray* dest, uint32_t n_copy)
 {
     uint32_t* src_ptr = src.unsafe_get_pointer();
     uint32_t* dest_ptr = (uint32_t*) mxGetData(dest);
@@ -97,9 +113,26 @@ void util::copy_entries_into_array(types::entries_t& src, mxArray* dest, uint32_
     std::memcpy(dest_ptr, src_ptr, n_copy * sizeof(uint32_t));
 }
 
+util::types::entries_t util::copy_array_into_entries(const mxArray* src, uint32_t n_copy)
+{
+    util::types::entries_t result(n_copy);
+    
+    uint32_t* dest_ptr = result.unsafe_get_pointer();
+    uint32_t* src_ptr = (uint32_t*) mxGetData(src);
+    
+    std::memcpy(dest_ptr, src_ptr, n_copy * sizeof(uint32_t));
+    
+    return result;
+}
+
 mxArray* util::make_entries_into_array(types::entries_t& src, uint32_t n_copy)
 {
     mxArray* out = mxCreateUninitNumericMatrix(n_copy, 1, mxUINT32_CLASS, mxREAL);
+    
+    if (n_copy == 0)
+    {
+        return out;
+    }
     
     util::copy_entries_into_array(src, out, n_copy);
     
@@ -126,6 +159,14 @@ void util::assert_scalar(const mxArray *arr, const char* id, const char* msg)
     }
 }
 
+void util::assert_nrhs(int actual, int expected, const char* id)
+{
+    if (actual != expected)
+    {
+        mexErrMsgIdAndTxt(id, "Wrong number of inputs.");
+    }
+}
+
 void util::assert_isa(const mxArray *arr, unsigned int class_id, const char* id, const char* msg)
 {
     if (mxGetClassID(arr) != class_id)
@@ -135,6 +176,113 @@ void util::assert_isa(const mxArray *arr, unsigned int class_id, const char* id,
     }
 }
 
+void util::equals(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+{
+    using namespace util;
+    
+    assert_nrhs(nrhs, 3, "locator:equals");
+    
+    if (nlhs != 1)
+    {
+        return;
+    }
+    
+    const mxArray* in_id_a = prhs[1];
+    const mxArray* in_id_b = prhs[2];
+    
+    assert_scalar(in_id_a, "locator:which_category", "Id must be scalar.");
+    assert_scalar(in_id_b, "locator:which_category", "Id must be scalar.");
+    
+    locator& c_locator_a = get_locator(mxGetScalar(in_id_a));
+    locator& c_locator_b = get_locator(mxGetScalar(in_id_b));
+    
+    bool is_equal = c_locator_a == c_locator_b;
+    
+    plhs[0] = mxCreateLogicalScalar(is_equal);
+}
+
+void util::which_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+{
+    using namespace util;
+    
+    assert_nrhs(nrhs, 3, "locator:which_category");
+    
+    if (nlhs != 1)
+    {
+        return;
+    }
+    
+    const mxArray* in_id = prhs[1];
+    const mxArray* in_labels = prhs[2];
+    
+    assert_scalar(in_id, "locator:which_category", "Id must be scalar.");
+    
+    locator& c_locator = get_locator(mxGetScalar(in_id));
+    
+    bool label_exists;
+    
+    uint32_t n_els = mxGetNumberOfElements(in_labels);
+    
+    types::entries_t res(n_els);
+    
+    uint32_t* res_ptr = res.unsafe_get_pointer();
+    uint32_t* in_labels_ptr = (uint32_t*) mxGetData(in_labels);
+    
+    for (uint32_t i = 0; i < n_els; i++)
+    {
+        uint32_t in_category = c_locator.which_category(in_labels_ptr[i], &label_exists);
+        
+        if (!label_exists)
+        {
+            mexErrMsgIdAndTxt("locator:which_category", "Label does not exist.");
+            return;
+        }
+        
+        res_ptr[i] = in_category;
+    }
+    
+    plhs[0] = make_entries_into_array(res, n_els);
+}
+
+void util::keep(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+{
+    using namespace util;
+    
+    assert_nrhs(nrhs, 3, "locator:keep");
+    
+    const mxArray* in_id = prhs[1];
+    const mxArray* in_indices = prhs[2];
+    
+    assert_scalar(in_id, "locator:keep", "Id must be scalar.");
+    
+    uint32_t id = mxGetScalar(in_id);
+    
+    locator& c_locator = get_locator(id);
+    
+    uint32_t n_els = mxGetNumberOfElements(in_indices);
+    
+    if (n_els == 0)
+    {
+        c_locator.empty();
+        return;
+    }
+    
+    types::entries_t to_keep = copy_array_into_entries(in_indices, n_els);
+    
+    to_keep.unchecked_sort(n_els);
+    
+    uint32_t* to_keep_ptr = to_keep.unsafe_get_pointer();
+    
+    if (to_keep_ptr[0] < 1 || to_keep_ptr[n_els-1] > c_locator.size())
+    {
+        mexErrMsgIdAndTxt("locator:keep", "Indices exceed locator dimensions.");
+    }
+    
+    const int32_t index_offset = -1;
+    
+    c_locator.unchecked_keep(to_keep, index_offset);
+}
+
 void util::instances(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
     if (nlhs == 0)
@@ -142,11 +290,7 @@ void util::instances(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         return;
     }
     
-    if (nrhs != 1)
-    {
-        mexErrMsgIdAndTxt("locator:instances", "Wrong number of inputs.");
-        return;
-    }
+    util::assert_nrhs(nrhs, 1, "locator:instances");
     
     uint32_t n_instances = (uint32_t) util::locators.size();
     
@@ -175,11 +319,7 @@ void util::copy(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         return;
     }
     
-    if (nrhs != 2)
-    {
-        mexErrMsgIdAndTxt("locator:copy", "Wrong number of inputs.");
-        return;
-    }
+    util::assert_nrhs(nrhs, 2, "locator:copy");
     
     uint32_t in_id = mxGetScalar(prhs[1]);
     
@@ -205,11 +345,7 @@ void util::size(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         return;
     }
     
-    if (nrhs != 2)
-    {
-        mexErrMsgIdAndTxt("locator:size", "Wrong number of inputs.");
-        return;
-    }
+    util::assert_nrhs(nrhs, 2, "locator:size");
     
     uint32_t id = (uint32_t) mxGetScalar(prhs[1]);
     
@@ -242,11 +378,7 @@ void util::is_locator(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]
 
 void util::require_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-    if (nrhs != 3)
-    {
-        mexErrMsgIdAndTxt("locator:require_category", "Wrong number of inputs.");
-        return;
-    }
+    util::assert_nrhs(nrhs, 3, "locator:require_category");
     
     const mxArray* in_id = prhs[1];
     const mxArray* in_cats = prhs[2];
@@ -266,11 +398,7 @@ void util::require_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *
 
 void util::rm_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-    if (nrhs != 3)
-    {
-        mexErrMsgIdAndTxt("locator:rm_category", "Wrong number of inputs.");
-        return;
-    }
+    util::assert_nrhs(nrhs, 3, "locator:rm_category");
     
     const mxArray* in_loc_id = prhs[1];
     const mxArray* in_categories = prhs[2];
@@ -296,6 +424,34 @@ void util::rm_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[
     }
 }
 
+void util::has_label(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+{
+    if (nlhs == 0)
+    {
+        return;
+    }
+    
+    util::assert_nrhs(nrhs, 3, "locator:has_label");
+    
+    const mxArray* in_loc_id = prhs[1];
+    const mxArray* in_labels = prhs[2];
+    
+    util::locator& c_locator = util::get_locator(mxGetScalar(in_loc_id));
+    
+    uint32_t* labs = (uint32_t*) mxGetData(in_labels);
+    size_t n_els = mxGetNumberOfElements(in_labels);
+    
+    mxArray* out_exists_arr = mxCreateLogicalMatrix(n_els, 1);
+    mxLogical* out_ptr = mxGetLogicals(out_exists_arr);
+    
+    for (uint32_t i = 0; i < n_els; i++)
+    {
+        out_ptr[i] = (mxLogical) c_locator.has_label(labs[i]);
+    }
+    
+    plhs[0] = out_exists_arr;
+}
+
 void util::has_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
     if (nlhs == 0)
@@ -303,11 +459,7 @@ void util::has_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs
         return;
     }
     
-    if (nrhs != 3)
-    {
-        mexErrMsgIdAndTxt("locator:has_category", "Wrong number of inputs.");
-        return;
-    }
+    util::assert_nrhs(nrhs, 3, "locator:has_category");
     
     const mxArray* in_loc_id = prhs[1];
     const mxArray* in_categories = prhs[2];
@@ -330,11 +482,7 @@ void util::has_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs
 
 void util::find(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-    if (nrhs != 3)
-    {
-        mexErrMsgIdAndTxt("locator:find", "Wrong number of inputs.");
-        return;
-    }
+    util::assert_nrhs(nrhs, 3, "locator:has_category");
     
     if (nlhs != 1)
     {
@@ -382,11 +530,7 @@ void util::find(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
 void util::get_categories(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-    if (nrhs != 2)
-    {
-        mexErrMsgIdAndTxt("locator:get_categories", "Wrong number of inputs.");
-        return;
-    }
+    util::assert_nrhs(nrhs, 2, "locator:get_categories");
     
     if (nlhs != 1)
     {
@@ -415,11 +559,7 @@ void util::get_categories(int nlhs, mxArray *plhs[], int nrhs, const mxArray *pr
 
 void util::get_labels(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-    if (nrhs != 2)
-    {
-        mexErrMsgIdAndTxt("locator:get_labels", "Wrong number of inputs.");
-        return;
-    }
+    util::assert_nrhs(nrhs, 2, "locator:get_labels");
     
     if (nlhs != 1)
     {
@@ -448,11 +588,7 @@ void util::get_labels(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]
 
 void util::add_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-    if (nrhs != 3)
-    {
-        mexErrMsgIdAndTxt("locator:add_category", "Wrong number of inputs.");
-        return;
-    }
+    assert_nrhs(nrhs, 3, "locator:add_category");
     
     if (nlhs > 0)
     {
@@ -490,11 +626,7 @@ void util::add_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs
 
 void util::set_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-    if (nrhs != 6)
-    {
-        mexErrMsgIdAndTxt("locator:set_category", "Wrong number of inputs.");
-        return;
-    }
+    assert_nrhs(nrhs, 6, "locator:set_category");
     
     util::assert_scalar(prhs[1], "locator:set_category", "Id must be scalar.");
     util::assert_scalar(prhs[2], "locator:set_category", "Category must be scalar.");

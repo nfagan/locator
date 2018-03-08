@@ -63,6 +63,6 @@ assert( numel(loc_getcats(loc)) == 0 );
 
 loc_destroy( loc );
 
-fprintf( '\n OK: All tests passed!\n\n' );
+fprintf( '\n OK: `loc_test_pipeline` passed.\n' );
 
 end

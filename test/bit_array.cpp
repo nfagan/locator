@@ -89,6 +89,16 @@ void test_any_all()
         assert(!barray.all());
     }
     
+    for (uint32_t i = 2; i < 100000; i++)
+    {
+        bit_array barray(i, false);
+        
+        barray.place(true, rand() % (i-1));
+        
+        assert(barray.any());
+        assert(!barray.all());
+    }
+    
     bit_array barray;
     
     assert(!barray.any());

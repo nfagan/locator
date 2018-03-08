@@ -1,4 +1,4 @@
-function loc_setcat(loc, cat, label, indices, rows)
+function loc = loc_setcat(loc, cat, label, indices, rows)
 
 %   LOC_SETCAT -- Assign label to category.
 %
@@ -8,6 +8,8 @@ function loc_setcat(loc, cat, label, indices, rows)
 %       - `indices` (logical, uint32) -- Index identifying rows of `label`.
 %       - `rows` (uint32) |OPTIONAL| -- Number of rows in `indices`, if
 %         `indices` is numeric and not logical.
+%     OUT:
+%       - `loc` (uint32) -- Locator id.
 
 op_code = loc_opcodes( 'set_cat' );
 
@@ -21,4 +23,3 @@ end
 loc_api( op_code, loc, uint32(cat), uint32(label), inds, rows );
 
 end
-

@@ -35,6 +35,7 @@ util::locator::~locator() noexcept
 util::locator::locator(const util::locator& other) :
     m_random_engine(other.m_random_engine),
     m_labels(other.m_labels),
+    m_categories(other.m_categories),
     m_in_category(other.m_in_category),
     m_by_category(other.m_by_category),
     m_indices(other.m_indices),
@@ -55,6 +56,7 @@ util::locator& util::locator::operator=(const util::locator& other)
 util::locator::locator(util::locator&& rhs) noexcept :
     m_random_engine(std::move(rhs.m_random_engine)),
     m_labels(std::move(rhs.m_labels)),
+    m_categories(std::move(rhs.m_categories)),
     m_in_category(std::move(rhs.m_in_category)),
     m_by_category(std::move(rhs.m_by_category)),
     m_indices(std::move(rhs.m_indices)),
@@ -69,6 +71,7 @@ util::locator& util::locator::operator=(util::locator&& rhs) noexcept
 {
     m_random_engine = std::move(rhs.m_random_engine);
     m_labels = std::move(rhs.m_labels);
+    m_categories = std::move(rhs.m_categories);
     m_in_category = std::move(rhs.m_in_category);
     m_by_category = std::move(rhs.m_by_category);
     m_indices = std::move(rhs.m_indices);
@@ -88,6 +91,87 @@ const util::types::entries_t& util::locator::get_labels() const
 const util::types::entries_t& util::locator::get_categories() const
 {
     return m_categories;
+}
+
+bool util::locator::categories_match(const util::locator &other) const
+{
+    return m_categories.eq_contents(other.m_categories, m_categories.tail());
+}
+
+bool util::locator::labels_match(const util::locator &other) const
+{
+    return m_labels.eq_contents(other.m_labels, m_n_labels);
+}
+
+bool util::locator::operator !=(const util::locator &other) const
+{
+    return !(util::locator::operator ==(other));
+}
+
+bool util::locator::operator ==(const util::locator &other) const
+{
+    if (this == &other)
+    {
+        return true;
+    }
+    
+    const uint32_t sz = size();
+    
+    if (sz != other.size())
+    {
+        return false;
+    }
+    
+    if (!categories_match(other))
+    {
+        return false;
+    }
+    
+    if (!labels_match(other))
+    {
+        return false;
+    }
+    
+    //  otherwise, we have to loop through all the indices to compare
+    uint32_t* lab_ptr = m_labels.unsafe_get_pointer();
+    
+    util::bit_array self_copy(sz, false);
+    
+    for (uint32_t i = 0; i < m_n_labels; i++)
+    {
+        uint32_t label = lab_ptr[i];
+        
+        const util::bit_array& self_ref = m_indices.at(label);
+        const util::bit_array& other_ref = other.m_indices.at(label);
+        
+        util::bit_array::unchecked_dot_eq(self_copy, self_ref, other_ref, 0, sz);
+        
+        if (!self_copy.all())
+        {
+            return false;
+        }
+        
+        self_copy.fill(false);
+    }
+    
+    return true;
+}
+
+uint32_t util::locator::which_category(uint32_t label, bool *exists) const
+{
+    uint32_t category = 0u;
+    
+    auto it = m_in_category.find(label);
+    
+    if (it == m_in_category.end())
+    {
+        *exists = false;
+        return category;
+    }
+    
+    *exists = true;
+    
+    return it->second;
 }
 
 uint32_t util::locator::add_category(uint32_t category)
@@ -305,11 +389,11 @@ uint32_t util::locator::keep(const util::types::entries_t& at_indices)
     return util::locator_status::OK;
 }
 
-void util::locator::unchecked_keep(const util::types::entries_t& at_indices)
+void util::locator::unchecked_keep(const util::types::entries_t& at_indices, int32_t index_offset)
 {
     for (auto& it : m_indices)
     {
-        it.second.unchecked_keep(at_indices);
+        it.second.unchecked_keep(at_indices, index_offset);
     }
     
     m_tmp_index.unchecked_keep(at_indices);

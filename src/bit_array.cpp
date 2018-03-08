@@ -144,7 +144,7 @@ void util::bit_array::empty()
     m_size = 0;
 }
 
-void util::bit_array::unchecked_keep(const util::dynamic_array<uint32_t> &at_indices)
+void util::bit_array::unchecked_keep(const util::dynamic_array<uint32_t> &at_indices, int32_t index_offset)
 {
     uint32_t new_size = at_indices.tail();
     
@@ -166,7 +166,7 @@ void util::bit_array::unchecked_keep(const util::dynamic_array<uint32_t> &at_ind
     
     for (uint32_t i = 0; i < new_size; i++)
     {
-        uint32_t idx = at_indices_ptr[i];
+        uint32_t idx = at_indices_ptr[i] + index_offset;
         uint32_t datum = data_ptr[get_bin(idx)];
         uint32_t bit = get_bit(idx);
         uint32_t into_bin = get_bin(i);
@@ -492,46 +492,33 @@ void util::bit_array::dot_and(util::bit_array &out,
     unchecked_dot_and(out, a, b, 0, a.m_size);
 }
 
-bool util::bit_array::unchecked_all(uint32_t start, uint32_t stop) const
+bool util::bit_array::all() const
 {
     if (m_size == 0)
     {
         return false;
     }
     
-    uint32_t first_bin = get_bin(start);
-    uint32_t first_bit = get_bit(start);
-    uint32_t last_bin = get_bin(stop);
-    uint32_t last_bit = get_bit(stop);
-    
+    uint32_t last_bin = get_bin(m_size);
+    uint32_t last_bit = get_bit(m_size);
+
     uint32_t* a_data = m_data.unsafe_get_pointer();
-    
-    uint32_t n_check_first = first_bit == 0u ? m_size_int : first_bit;
-    uint32_t n_check_last = first_bit == 0u ? m_size_int : last_bit;
-    
-    if (util::bit_array::bit_sum(a_data[first_bin]) != n_check_first)
-    {
-        return false;
-    }
-    
+
     uint32_t stop_idx = last_bit == 0u ? last_bin-1 : last_bin;
+    uint32_t n_check_last = last_bit == 0u ? m_size_int : last_bit;
+    uint32_t one = ~(0u);
     
-    for (size_t i = first_bin + 1; i < stop_idx; i++)
+    for (uint32_t i = 0; i < stop_idx; i++)
     {
-        uint32_t n_check = (i < stop_idx-1) ? m_size_int : n_check_last;
-        
-        if (util::bit_array::bit_sum(a_data[i]) != n_check)
+        if (a_data[i] != one)
         {
             return false;
         }
     }
     
-    return true;
-}
-
-bool util::bit_array::all() const
-{
-    return unchecked_all(0, m_size);
+    uint32_t last_datum = get_final_bin_with_zeros(a_data, get_data_size(m_size));
+    
+    return util::bit_array::bit_sum(last_datum) == n_check_last;
 }
 
 bool util::bit_array::any() const
