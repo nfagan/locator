@@ -95,6 +95,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             util::equals(nlhs, plhs, nrhs, prhs);
             return;
             
+        case util::ops::APPEND:
+            util::append(nlhs, plhs, nrhs, prhs);
+            return;
+            
         default:
             mexErrMsgIdAndTxt("locator:main", "Unrecognized op-code.");
     }
@@ -167,12 +171,49 @@ void util::assert_nrhs(int actual, int expected, const char* id)
     }
 }
 
+void util::assert_nlhs(int actual, int expected, const char* id)
+{
+    if (actual != expected)
+    {
+        mexErrMsgIdAndTxt(id, "Wrong number of outputs.");
+    }
+}
+
 void util::assert_isa(const mxArray *arr, unsigned int class_id, const char* id, const char* msg)
 {
     if (mxGetClassID(arr) != class_id)
     {
         mexErrMsgIdAndTxt(id, msg);
         return;
+    }
+}
+
+void util::append(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+{
+    using namespace util;
+    
+    assert_nrhs(nrhs, 3, "locator:append");
+    assert_nlhs(nlhs, 0, "locator:append");
+    
+    const mxArray* in_id_a = prhs[1];
+    const mxArray* in_id_b = prhs[2];
+    
+    assert_scalar(in_id_a, "locator:which_category", "Id must be scalar.");
+    assert_scalar(in_id_b, "locator:which_category", "Id must be scalar.");
+    
+    locator& c_locator_a = get_locator(mxGetScalar(in_id_a));
+    const locator& c_locator_b = get_locator(mxGetScalar(in_id_b));
+    
+    uint32_t result = c_locator_a.append(c_locator_b);
+    
+    if (result == locator_status::OK)
+    {
+        return;
+    }
+    
+    if (result == locator_status::CATEGORIES_DO_NOT_MATCH)
+    {
+        mexErrMsgIdAndTxt("locator:append", "Categories do not match between locators.");
     }
 }
 

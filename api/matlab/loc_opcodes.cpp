@@ -21,7 +21,8 @@ const util::op_map_t op_map({
     {"instances", util::ops::INSTANCES},
     {"which_cat", util::ops::WHICH_CATEGORY},
     {"has_lab", util::ops::HAS_LABEL},
-    {"eq", util::ops::EQUALS}
+    {"eq", util::ops::EQUALS},
+    {"append", util::ops::APPEND}
 });
 
 void use_std_string(mxArray *plhs[], const mxArray *prhs[]);

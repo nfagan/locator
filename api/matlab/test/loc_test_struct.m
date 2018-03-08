@@ -35,6 +35,9 @@ try
 
     assert( all(ind_loc == ind_sp) );  
   end
+  
+  loc_destroy( loc );
+  
 catch err
   loc_destroy( loc );
   throw( err );

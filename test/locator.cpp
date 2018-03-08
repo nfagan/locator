@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <functional>
 
+void test_append();
 void test_eq_contents();
 void test_add_category();
 void test_add_label();
@@ -36,8 +37,7 @@ int main(int argc, char* argv[])
     using util::profile::simple;
     
     test_set_category_mult_categories2();
-//    test_set_category_mult_categories();
-    
+    test_append();
     test_eq_contents();
     test_keep2();
     test_add_label();
@@ -76,6 +76,63 @@ util::bit_array get_randomly_filled_array(uint32_t sz, uint32_t n_true)
     }
     
     return arr;
+}
+
+void test_append()
+{
+    using namespace util;
+    
+    locator loc;
+    
+    uint32_t sz = 100000;
+    
+    util::bit_array index0 = get_randomly_filled_array(sz, 20);
+    util::bit_array index1 = get_randomly_filled_array(sz, 30);
+    
+    loc.require_category(0);
+    loc.set_category(0, 100, index0);
+    loc.set_category(0, 102, index1);
+    
+    locator loc2;
+    
+    loc2.require_category(1);
+    loc2.set_category(1, 100, index0);
+    
+    uint32_t res = loc.append(loc2);
+    
+    assert(res == locator_status::CATEGORIES_DO_NOT_MATCH);
+    
+    locator loc3 = loc;
+    
+    loc3.set_category(0, 101, index0);
+    
+    res = loc.append(loc3);
+    
+    assert(res == locator_status::OK);
+    
+    assert(loc.size() == sz * 2);
+    
+    auto labs = loc.get_labels();
+    
+    assert(labs.tail() == 3);
+    
+    uint32_t* labs_ptr = labs.unsafe_get_pointer();
+    assert(contains(labs_ptr, labs.tail(), 100u));
+    assert(contains(labs_ptr, labs.tail(), 101u));
+    assert(contains(labs_ptr, labs.tail(), 102u));
+
+    auto inds1 = loc.find(101);
+    
+    assert(inds1.tail() == index0.sum());
+    
+    for (uint32_t i = 0; i < inds1.tail(); i++)
+    {
+        uint32_t idx = inds1.at(i);
+        assert(index0.at(idx-sz));
+    }
+    
+    assert(loc3.size() == sz);
+    assert(loc3.n_labels() == 2);
 }
 
 void test_eq_contents()

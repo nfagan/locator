@@ -32,6 +32,7 @@ namespace util {
         static constexpr uint32_t WRONG_INDEX_SIZE = 4u;
         static constexpr uint32_t INDEX_OUT_OF_BOUNDS = 5u;
         static constexpr uint32_t LABEL_EXISTS_IN_OTHER_CATEGORY = 6u;
+        static constexpr uint32_t CATEGORIES_DO_NOT_MATCH = 7u;
     };
 }
 
@@ -79,6 +80,8 @@ public:
     
     bool categories_match(const util::locator& other) const;
     bool labels_match(const util::locator& other) const;
+    
+    uint32_t append(const util::locator& other);
     
     types::entries_t combinations(const types::entries_t& categories) const;
     

@@ -7,7 +7,6 @@
 
 #include "locator.hpp"
 #include "utilities.hpp"
-#include <config.hpp>
 #include <algorithm>
 #include <iostream>
 #include <chrono>
@@ -94,13 +93,13 @@ const util::types::entries_t& util::locator::get_categories() const
 }
 
 bool util::locator::categories_match(const util::locator &other) const
-{
-    return m_categories.eq_contents(other.m_categories, m_categories.tail());
+{   
+    return m_categories.eq_contents(other.m_categories);
 }
 
 bool util::locator::labels_match(const util::locator &other) const
 {
-    return m_labels.eq_contents(other.m_labels, m_n_labels);
+    return m_labels.eq_contents(other.m_labels);
 }
 
 bool util::locator::operator !=(const util::locator &other) const
@@ -399,6 +398,81 @@ void util::locator::unchecked_keep(const util::types::entries_t& at_indices, int
     m_tmp_index.unchecked_keep(at_indices);
     
     prune();
+}
+
+uint32_t util::locator::append(const util::locator &other)
+{
+    if (!categories_match(other))
+    {
+        return util::locator_status::CATEGORIES_DO_NOT_MATCH;
+    }
+    
+    if (other.is_empty())
+    {
+        return util::locator_status::OK;
+    }
+    
+    if (is_empty())
+    {
+        *this = other;
+        return util::locator_status::OK;
+    }
+    
+    util::types::entries_t other_labels = other.m_labels;
+    uint32_t* own_label_ptr = m_labels.unsafe_get_pointer();
+    
+    uint32_t original_sz = size();
+    uint32_t other_sz = other.size();
+    
+    for (uint32_t i = 0; i < m_n_labels; i++)
+    {
+        uint32_t own_label = own_label_ptr[i];
+        
+        if (other.has_label(own_label))
+        {
+            m_indices[own_label].append(other.m_indices.at(own_label));
+            
+            uint32_t index_in_other_labels;
+            uint32_t* other_label_ptr = other_labels.unsafe_get_pointer();
+            util::unchecked_binary_search(other_label_ptr, other_labels.tail(), own_label, &index_in_other_labels);
+            
+            other_labels.erase(index_in_other_labels);
+            
+            continue;
+        }
+        
+        m_indices[own_label].append(util::bit_array(other_sz, false));
+    }
+    
+    uint32_t remaining_labels = other_labels.tail();
+    uint32_t* other_label_ptr = other_labels.unsafe_get_pointer();
+    
+    for (uint32_t i = 0; i < remaining_labels; i++)
+    {
+        uint32_t other_lab = other_label_ptr[i];
+        uint32_t in_cat = other.m_in_category.at(other_lab);
+        
+        util::bit_array own_index(original_sz, false);
+        
+        own_index.append(other.m_indices.at(other_lab));
+        
+        m_indices[other_lab] = std::move(own_index);
+        m_labels.push(other_lab);
+        m_in_category[other_lab] = in_cat;
+        
+        util::types::entries_t& by_category = m_by_category.at(in_cat);
+        
+        by_category.push(other_lab);
+        by_category.unchecked_sort(by_category.tail());
+        
+        m_n_labels++;
+    }
+    
+    m_labels.unchecked_sort(m_n_labels);
+    
+    m_tmp_index.append(other.m_tmp_index);
+    
+    return util::locator_status::OK;
 }
 
 void util::locator::clear()

@@ -22,6 +22,7 @@ namespace util {
     void rm_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     
     void keep(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
+    void append(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
             
     void has_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     void has_label(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
@@ -41,6 +42,7 @@ namespace util {
     
     void instances(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     
+    void assert_nlhs(int actual, int expected, const char* id);
     void assert_nrhs(int actual, int expected, const char* id);
     void assert_scalar(const mxArray *arr, const char* id, const char* msg);
     void assert_isa(const mxArray *arr, unsigned int class_id, const char* id, const char* msg);
