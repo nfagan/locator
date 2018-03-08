@@ -2,7 +2,7 @@
 
 `locator` is meant to quickly generate indices of subsets of data. Observations of data are associated with labels, divided into categories, enabling the fast lookup of single labels and label combinations.
 
-### dependencies (`locator` library)
+### dependencies (main library)
 * c++14 compatible compiler.
 
 ### dependencies (matlab api)
