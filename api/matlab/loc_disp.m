@@ -26,8 +26,8 @@ else
   lab_str = 'labels';
 end
 
-fprintf( '\n %s locator', sz_str );
-fprintf( '\n %d %s, %d %s', n_cats, cat_str, n_labs, lab_str );
+fprintf( ' %s locator', sz_str );
+fprintf( '\n %d %s | %d %s', n_cats, cat_str, n_labs, lab_str );
 fprintf( '\n\n' );
 
 end

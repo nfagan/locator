@@ -4,7 +4,8 @@ function loc = loc_setcat(loc, cat, label, indices, rows)
 %
 %     IN:
 %       - `loc` (uint32) -- Locator id.
-%       - `cats` (uint32) -- Category or categories to add.
+%       - `cat` (uint32) -- Category to set.
+%       - `label` (uint32) -- Label to assign.
 %       - `indices` (logical, uint32) -- Index identifying rows of `label`.
 %       - `rows` (uint32) |OPTIONAL| -- Number of rows in `indices`, if
 %         `indices` is numeric and not logical.
