@@ -32,6 +32,4 @@ end
 
 loc_destroy( instances );
 
-loc_test_util_print_ok( mfilename );
-
 end

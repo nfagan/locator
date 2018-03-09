@@ -63,6 +63,4 @@ assert( numel(loc_getcats(loc)) == 0 );
 
 loc_destroy( loc );
 
-loc_test_util_print_ok( mfilename );
-
 end

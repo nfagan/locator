@@ -42,8 +42,6 @@ catch err
   throw( err );
 end
 
-loc_test_util_print_ok( mfilename );
-
 end
 
 function cleanup(old_instances)
