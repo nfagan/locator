@@ -45,7 +45,7 @@ catch err
   throw( err );
 end
 
-fprintf( '\n OK: `loc_test_append` passed.\n' );
+loc_test_util_print_ok( mfilename );
 
 end
 

@@ -43,6 +43,6 @@ catch err
   throw( err );
 end
 
-fprintf( '\n OK: `loc_test_struct` passed.\n' );
+loc_test_util_print_ok( mfilename );
 
 end

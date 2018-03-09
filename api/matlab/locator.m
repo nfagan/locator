@@ -370,8 +370,17 @@ classdef locator
       
       id_ = obj.id;
       
+      desktop_exists = usejava( 'desktop' );
+      
+      if ( desktop_exists )
+        link_str = sprintf( '<a href="matlab:helpPopup %s">%s</a>' ...
+          , class(obj), class(obj) );
+      else
+        link_str = class( obj );
+      end
+      
       if ( ~loc_isloc(id_) )
-        fprintf( 'Handle to deleted locator instance.\n\n' );
+        fprintf( 'Handle to deleted %s instance.\n\n', link_str );
         return;
       end
       
@@ -394,15 +403,6 @@ classdef locator
         lab_str = 'label';
       else
         lab_str = 'labels';
-      end
-      
-      desktop_exists = usejava( 'desktop' );
-      
-      if ( desktop_exists )
-        link_str = sprintf( '<a href="matlab:helpPopup %s">%s</a>' ...
-          , class(obj), class(obj) );
-      else
-        link_str = class( obj );
       end
 
       fprintf( '  %s %s', sz_str, link_str );

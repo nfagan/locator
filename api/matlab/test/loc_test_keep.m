@@ -42,6 +42,5 @@ end
 
 loc_destroy( loc );
 
-fprintf( '\n OK: `loc_test_keep` passed.\n' );
-
+loc_test_util_print_ok( mfilename );
 end

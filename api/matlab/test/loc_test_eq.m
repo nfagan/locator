@@ -32,6 +32,6 @@ end
 
 loc_destroy( instances );
 
-fprintf( '\n OK: `loc_test_eq` passed.\n' );
+loc_test_util_print_ok( mfilename );
 
 end

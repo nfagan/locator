@@ -13,8 +13,10 @@ addpath( test_dir );
 loc_test_pipeline();
 loc_test_from();
 loc_test_keep();
+loc_test_keep_one();
 loc_test_struct();
 loc_test_eq();
 loc_test_append();
+loc_test_append_random();
 
 end
