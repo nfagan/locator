@@ -395,7 +395,7 @@ void util::locator::unchecked_keep(const util::types::entries_t& at_indices, int
         it.second.unchecked_keep(at_indices, index_offset);
     }
     
-    m_tmp_index.unchecked_keep(at_indices);
+    m_tmp_index.unchecked_keep(at_indices, index_offset);
     
     prune();
 }

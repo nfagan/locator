@@ -1,5 +1,10 @@
 function loc_test_run(func)
 
+%   LOC_TEST_RUN -- Run test function.
+%
+%     IN:
+%       - `func` (function_handle)
+
 c_instances = locator.instances();
 
 func_name = func2str( func );
@@ -12,6 +17,5 @@ catch err
 end
 
 loc_test_destroy_new( c_instances );
-  
 
 end
