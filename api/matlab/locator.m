@@ -17,12 +17,18 @@ classdef locator
       %     series of functions; consult their documentation for further
       %     information.
       %
+      %     loc = locator() creates a new instance.
+      %
+      %     loc = locator( id ) constructs an object from the `id` of
+      %     a valid instance.
+      %
       %     See also locator/find, locator/addcat, locator/setcat
       
       if ( nargin == 1 )
-        assert( numel(id) == 1 && loc_isloc(id) ...
-          , 'Invalid locator instance id given.', id );
-        obj.id = id;
+        if ( numel(id) ~= 1 || ~loc_isloc(id) )
+          error( 'Invalid locator instance id given.' );
+        end
+        obj.id = uint32( id );
       else
         obj.id = loc_create();
       end
@@ -101,6 +107,8 @@ classdef locator
       %
       %     tf = trueat(obj, [1, 2]); creates an Mx1 logical array `tf`
       %     with true values at indices [1, 2], and where M = numel(obj).
+      %
+      %     See also locator/setcat, locator/find
       %
       %     IN:
       %       - `indices` (uint32)
@@ -457,6 +465,27 @@ classdef locator
       [varargout{1:nargout}] = loc_from( loc_convertible );
       
       varargout{1} = locator( varargout{1} );
+    end
+    
+    function loc = with(cat, label, index)
+      
+      %   WITH -- Create locator with category set to label.
+      %
+      %     See also locator/locator, locator/setcat
+      %
+      %     IN:
+      %       - `cat` (uint32)
+      %       - `label` (uint32)
+      %       - `index` (logical)
+      %     OUT:
+      %       - `loc` (locator)
+      
+      if ( nargin < 3 )
+        index = true;
+      end
+      loc = locator();
+      addcat( loc, cat );
+      setcat( loc, cat, label, index );
     end
     
     function out = instances(varargin)
