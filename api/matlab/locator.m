@@ -44,6 +44,8 @@ classdef locator
       
       %   NUMEL -- Get the number of rows in the locator.
       %
+      %     See also locator/size, locator/getcats
+      %
       %     OUT:
       %       - `n` (uint32)
       
@@ -53,6 +55,8 @@ classdef locator
     function sz = size(obj, dim)
       
       %   SIZE -- Get the number of rows in the locator.
+      %
+      %     See also locator/numel, locator/getlabs
       %
       %     IN:
       %       - `dimension` |OPTIONAL| (numeric)
@@ -83,10 +87,28 @@ classdef locator
       
       %   ISEMPTY -- True if the object has no labels.
       %
+      %     See also locator/size, locator/empty
+      %
       %     OUT
       %       - `tf` (logical)
       
       tf = loc_isempty( obj.id );
+    end
+    
+    function tf = trueat(obj, indices)
+      
+      %   TRUEAT -- Assign true at indices.
+      %
+      %     tf = trueat(obj, [1, 2]); creates an Mx1 logical array `tf`
+      %     with true values at indices [1, 2], and where M = numel(obj).
+      %
+      %     IN:
+      %       - `indices` (uint32)
+      %     OUT:
+      %       - `tf` (logical)
+      
+      tf = false( size(obj) );
+      tf(indices) = true;
     end
     
     function inds = find(obj, labels)
@@ -165,7 +187,7 @@ classdef locator
     
     function tf = haslab(obj, label)
       
-      %   HASCAT -- True if the label exists.
+      %   HASLAB -- True if the label exists.
       %
       %     See also locator/whichcat
       %
@@ -248,7 +270,7 @@ classdef locator
       
       %   COPY -- Create a copy of the locator instance.
       %
-      %     See also locator/create, locator/destroy
+      %     See also locator/locator, locator/destroy
       %
       %     OUT:
       %       - `b` (locator)
@@ -266,7 +288,7 @@ classdef locator
       %     An error is thrown if the categories of `a` do not match those 
       %     of `b`.
       %
-      %     See also locator/keep, locator/only, locator/create
+      %     See also locator/keep, locator/only
       %
       %     IN:
       %       - `b` (locator)
@@ -357,7 +379,7 @@ classdef locator
       
       %   DESTROY -- Delete the object and free memory.
       %
-      %     See also locator/create, locator/copy
+      %     See also locator/locator, locator/copy
       
       loc_destroy( obj.id );
     end
@@ -366,7 +388,7 @@ classdef locator
       
       %   DISP -- Pretty-print the object's contents.
       %
-      %     See also locator/create, locator/getcats
+      %     See also locator/locator, locator/getcats
       
       id_ = obj.id;
       
@@ -428,7 +450,7 @@ classdef locator
       
       %   FROM -- Create locator from compatible source.
       %
-      %     See also loc_from
+      %     See also loc_from, locator/locator
       
       nargoutchk( 1, Inf );
       
