@@ -1,5 +1,7 @@
 function loc_testall()
 
+%   LOC_TESTALL -- Run all tests.
+
 outer_dir = fileparts( which(mfilename) );
 
 test_dir = fullfile( outer_dir, 'test' );

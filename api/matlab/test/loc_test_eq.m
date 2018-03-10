@@ -8,28 +8,18 @@ a = loc_from( sp );
 b = loc_from( sp );
 c = loc_from( sp );
 
-instances = [ a, b, c ];
+labs_a = loc_getlabs( a );
 
-try
-  labs_a = loc_getlabs( a );
+lab = labs_a(1);
 
-  lab = labs_a(1);
+ind = loc_find( a, lab );
 
-  ind = loc_find( a, lab );
+cat = loc_whichcat( a, lab );
 
-  cat = loc_whichcat( a, lab );
+loc_setcat( a, cat, lab, ind(1:end-1), loc_size(a) );
+loc_setcat( c, cat, lab, ind, loc_size(c) );
 
-  loc_setcat( a, cat, lab, ind(1:end-1), loc_size(a) );
-  loc_setcat( c, cat, lab, ind, loc_size(c) );
-
-  assert( ~loc_eq(a, b), 'locs were equal' );
-  assert( loc_eq(b, c), 'locs were not equal' );
-  
-catch err
-  loc_destroy( instances );
-  throw( err );
-end
-
-loc_destroy( instances );
+assert( ~loc_eq(a, b), 'locs were equal' );
+assert( loc_eq(b, c), 'locs were not equal' );
 
 end

@@ -40,6 +40,4 @@ for i = 1:1e3
   loc_destroy( locb );
 end
 
-loc_destroy( loc );
-
 end

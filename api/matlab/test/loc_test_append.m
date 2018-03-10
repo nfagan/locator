@@ -2,57 +2,35 @@ function loc_test_append()
 
 loc_test_assert_depends_present();
 
-current_instances = loc_instances();
+sp = get_labels( get_example_container() );
+[loc, ~, lab_map] = loc_from( sp );
 
-try
+n_iters = 100;
 
-  sp = get_labels( get_example_container() );
-  [loc, ~, lab_map] = loc_from( sp );
+for i = 1:n_iters
+  locb = loc_copy( loc );
+  locc = loc_copy( loc );
 
-  n_iters = 100;
+  rand_subset_ind = sort( randperm(shape(sp, 1), 400) );
+  rand_subset = sp.numeric_index( rand_subset_ind );
 
-  for i = 1:n_iters
-    locb = loc_copy( loc );
-    locc = loc_copy( loc );
+  loc_keep( locc, rand_subset_ind );
 
-    rand_subset_ind = sort( randperm(shape(sp, 1), 400) );
-    rand_subset = sp.numeric_index( rand_subset_ind );
+  sp_appended = append( sp, rand_subset );
 
-    loc_keep( locc, rand_subset_ind );
+  loc_append( locb, locc );
 
-    sp_appended = append( sp, rand_subset );
+  assert( shape(sp_appended, 1) == loc_size(locb) );  
 
-    loc_append( locb, locc );
+  for j = 1:numel(sp_appended.labels)
+    char_lab = sp_appended.labels{j};
+    sp_ind = find( sp_appended.where(char_lab) );
+    loc_ind = loc_find( locb, lab_map(char_lab) );
 
-    assert( shape(sp_appended, 1) == loc_size(locb) );  
-
-    for j = 1:numel(sp_appended.labels)
-      char_lab = sp_appended.labels{j};
-      sp_ind = find( sp_appended.where(char_lab) );
-      loc_ind = loc_find( locb, lab_map(char_lab) );
-
-      assert( numel(sp_ind) == numel(loc_ind) && all(sp_ind == loc_ind) );
-    end
-
-    loc_destroy( [locb, locc] );
+    assert( numel(sp_ind) == numel(loc_ind) && all(sp_ind == loc_ind) );
   end
-  
-  cleanup( current_instances );
-  
-catch err
-  cleanup( current_instances );
-  
-  throw( err );
-end
 
-end
-
-function cleanup( orig_instances )
-
-new_instances = setdiff( loc_instances(), orig_instances );
-
-if ( ~isempty(new_instances) )
-  loc_destroy( new_instances );
+  loc_destroy( [locb, locc] );
 end
 
 end

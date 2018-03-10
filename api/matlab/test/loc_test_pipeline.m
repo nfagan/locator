@@ -40,8 +40,6 @@ for i = 1:10
   assert( loc_hascat(loc, category + i - 1) );
 end
 
-loc_destroy( loc );
-
 % second
 
 loc = loc_create();
@@ -60,7 +58,5 @@ assert( loc_size(loc) == sz );
 loc_rmcat( loc, categories );
 
 assert( numel(loc_getcats(loc)) == 0 );
-
-loc_destroy( loc );
 
 end
