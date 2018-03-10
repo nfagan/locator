@@ -8,6 +8,7 @@
 #include "utilities.hpp"
 
 void test_all();
+void test_append_one();
 void test_bit_array();
 void test_bit_array_copy();
 void test_threaded_accessor();
@@ -32,6 +33,7 @@ void test_assign_true();
 int main(int argc, char* argv[])
 {
     std::cout << "BEGIN BIT_ARRAY" << std::endl;
+    test_append_one();
     test_any_all();
     test_basic();
     test_any_all();
@@ -47,6 +49,29 @@ int main(int argc, char* argv[])
     std::cout << "END BIT_ARRAY" << std::endl;
     
     return 0;
+}
+
+void test_append_one()
+{
+    using namespace util;
+    
+    bit_array barray;
+    
+    for (uint32_t i = 0; i < 10000; i++)
+    {
+        bit_array barray2(1, true);
+        
+        barray.append(barray2);
+        
+        assert(barray.at(i));
+        assert(barray.size() == i+1);
+        assert(barray.all());
+        assert(barray.any());
+        
+        auto ind = bit_array::find(barray);
+        
+        assert(ind.size() == barray.size());
+    }
 }
 
 void test_any_all()

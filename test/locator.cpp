@@ -6,6 +6,7 @@
 #include <functional>
 
 void test_append();
+void test_append_single();
 void test_eq_contents();
 void test_add_category();
 void test_add_label();
@@ -38,6 +39,7 @@ int main(int argc, char* argv[])
     
     test_set_category_mult_categories2();
     test_append();
+    test_append_single();
     test_eq_contents();
     test_keep2();
     test_add_label();
@@ -76,6 +78,55 @@ util::bit_array get_randomly_filled_array(uint32_t sz, uint32_t n_true)
     }
     
     return arr;
+}
+
+void test_append_single()
+{
+    using namespace util;
+    
+    locator loc;
+    
+    uint32_t n_cats = 10;
+    uint32_t amt = uint32_t(1e6);
+    
+    for (uint32_t i = 0; i < n_cats; i++)
+    {
+        loc.require_category(i);
+    }
+    
+    for (uint32_t i = 0; i < 1000; i++)
+    {
+        locator locb;
+        
+        types::entries_t res;
+        
+        for (uint32_t j = 0; j < n_cats; j++)
+        {
+            locb.require_category(j);
+            
+            uint32_t lab = rand() % amt;
+            
+            while (loc.has_label(lab) || locb.has_label(lab))
+            {
+                lab = rand() % amt;
+            }
+            
+            locb.set_category(j, lab, bit_array(1, true));
+            
+            res.push(lab);
+        }
+        
+        loc.append(locb);
+        
+        const auto& labs = loc.get_labels();
+        uint32_t* labs_ptr = labs.unsafe_get_pointer();
+        
+        for (uint32_t i = 0; i < labs.tail(); i++)
+        {
+            auto inds = loc.find(labs_ptr[i]);
+            assert(inds.tail() > 0);
+        }        
+    }
 }
 
 void test_append()
