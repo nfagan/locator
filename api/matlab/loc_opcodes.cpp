@@ -22,7 +22,12 @@ const util::op_map_t op_map({
     {"which_cat", util::ops::WHICH_CATEGORY},
     {"has_lab", util::ops::HAS_LABEL},
     {"eq", util::ops::EQUALS},
-    {"append", util::ops::APPEND}
+    {"append", util::ops::APPEND},
+    {"in_cat", util::ops::IN_CATEGORY},
+    {"count", util::ops::COUNT},
+    {"collapse_cat", util::ops::COLLAPSE_CATEGORY},
+    {"set_cat_mult", util::ops::SET_CATEGORY_MULT},
+    {"n_labels", util::ops::N_LABELS}
 });
 
 void use_std_string(mxArray *plhs[], const mxArray *prhs[]);

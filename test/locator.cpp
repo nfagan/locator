@@ -6,6 +6,7 @@
 #include <functional>
 
 void test_append();
+void test_collapse();
 void test_append_single();
 void test_eq_contents();
 void test_add_category();
@@ -15,6 +16,7 @@ void test_find_one();
 void test_keep();
 void test_keep2();
 void test_set_category();
+void test_set_category_mult_labels();
 void test_set_category_mult_categories();
 void test_set_category_mult_categories2();
 void test_empty_and_clear();
@@ -37,6 +39,8 @@ int main(int argc, char* argv[])
     std::cout << "BEGIN LOCATOR" << std::endl;
     using util::profile::simple;
     
+    test_set_category_mult_labels();
+    test_collapse();
     test_set_category_mult_categories2();
     test_append();
     test_append_single();
@@ -78,6 +82,108 @@ util::bit_array get_randomly_filled_array(uint32_t sz, uint32_t n_true)
     }
     
     return arr;
+}
+
+void test_collapse()
+{
+    using namespace util;
+    
+    for (uint32_t i = 0; i < 1000; i++)
+    {
+        locator loc;
+        uint32_t sz = 1000;
+        
+        bit_array index(sz, false);
+    
+        index.place(true, 100);
+        index.place(true, 102);
+        index.place(true, 103);
+    
+        loc.require_category(0);
+    
+        loc.set_category(0, 1, index);
+    
+        index.fill(false);
+    
+        index.place(true, 80);
+        index.place(true, 81);
+    
+        loc.set_category(0, 2, index);
+    
+        assert(loc.n_labels() == 2);
+    
+        assert(loc.collapse_category(1) == locator_status::CATEGORY_DOES_NOT_EXIST);
+        assert(loc.n_labels() == 2);
+    
+        assert(loc.collapse_category(0) == locator_status::OK);
+    
+        assert(loc.n_labels() == 1);
+    
+        assert(!loc.has_label(1));
+        assert(!loc.has_label(2));
+    
+        auto labs = loc.get_labels();
+        
+        assert(loc.count(labs.at(0)) == sz);
+    }
+}
+
+void test_set_category_mult_labels()
+{
+    using namespace util;
+    
+    locator loc;
+    
+    types::entries_t res(4);
+    res.seek_tail_to_start();
+    
+    loc.require_category(0);
+    loc.set_category(0, 1, bit_array(100, true));
+    
+    res.push(0);
+    res.push(1);
+    res.push(2);
+    res.push(2);
+    
+    bit_array index(100, false);
+    index.place(true, 0);
+    index.place(true, 1);
+    index.place(true, 2);
+    index.place(true, 3);
+    
+    uint32_t result = loc.set_category(0, res, index);
+    
+    assert(result == locator_status::OK);
+    
+    assert(loc.n_labels() == 3);
+    
+    auto inds = loc.find(2);
+    
+    assert(inds.tail() == 2 && inds.at(0) == 2 && inds.at(1) == 3);
+    
+    inds = loc.find(0);
+    
+    assert(inds.tail() == 1 && inds.at(0) == 0);
+    
+    index.fill(true);
+    
+    result = loc.set_category(0, res, index);
+    
+    assert(result == locator_status::WRONG_NUMBER_OF_INDICES);
+    
+    locator loc2;
+    
+    loc2.require_category(0);
+    
+    types::entries_t in_labs;
+    for (uint32_t i = 0; i < 4; i++)
+    {
+        in_labs.push(i);
+    }
+    
+    result = loc2.set_category(0, in_labs, bit_array(4, true));
+    
+    assert(result == locator_status::OK);
 }
 
 void test_append_single()

@@ -16,6 +16,7 @@ ind = loc_find( a, lab );
 
 cat = loc_whichcat( a, lab );
 
+loc_setcat( a, cat, max(labs_a)+1, ind, loc_size(a) );
 loc_setcat( a, cat, lab, ind(1:end-1), loc_size(a) );
 loc_setcat( c, cat, lab, ind, loc_size(c) );
 

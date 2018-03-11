@@ -101,21 +101,28 @@ classdef locator
       tf = loc_isempty( obj.id );
     end
     
-    function tf = trueat(obj, indices)
+    function tf = trueat(obj, indices, rows)
       
       %   TRUEAT -- Assign true at indices.
       %
       %     tf = trueat(obj, [1, 2]); creates an Mx1 logical array `tf`
       %     with true values at indices [1, 2], and where M = numel(obj).
       %
+      %     tf = trueat(...,  3) creates an array of size 3x1, instead of
+      %     Mx1.
+      %
       %     See also locator/setcat, locator/find
       %
       %     IN:
       %       - `indices` (uint32)
+      %       - `rows` (uint32) |OPTIONAL|
       %     OUT:
       %       - `tf` (logical)
       
-      tf = false( size(obj) );
+      if ( nargin < 3 )
+        rows = numel( obj );
+      end
+      tf = false( rows, 1 );
       tf(indices) = true;
     end
     
@@ -141,6 +148,30 @@ classdef locator
       %       - `inds` (uint32)
       
       inds = loc_find( obj.id, labels );
+    end
+    
+    function cts = count(obj, labels)
+      
+      %   COUNT -- Count the number of rows associated with a label(s).
+      %
+      %     IN:
+      %       - `labels` (uint32)
+      %     OUT:
+      %       - `cts` (uint32)
+      
+      cts = loc_count( obj.id, labels );      
+    end
+    
+    function N = nlabs(obj)
+      
+      %   NLABS -- Get the number of labels in the locator.
+      %
+      %     See also locator/count, locator/getlabs, locator/find
+      %
+      %     OUT:
+      %       - `N` (uint32)
+      
+      N = loc_nlabs( obj.id );
     end
     
     function obj = addcat(obj, category)
@@ -221,12 +252,38 @@ classdef locator
       cats = loc_whichcat( obj.id, labels );
     end
     
+    function labs = incat(obj, category)
+      
+      %   INCAT -- Get all labels in a category.
+      %
+      %     IN:
+      %       - `category` (uint32)
+      %     OUT:
+      %       - `labs` (uint32)
+      
+      labs = loc_incat( obj.id, category );
+    end
+    
     function obj = setcat(obj, cat, label, index)
       
       %   SETCAT -- Assign label to category.
       %
       %     setcat( obj, 0, 10, true(100, 1) ); assigns the label 10 to
       %     category 0, associated with an all-true 100x1 index.
+      %
+      %     Rows at which `index` is true become false for other labels in
+      %     the category. In this way, a row can only ever be identified by
+      %     one label per category. 
+      %
+      %     If assigning to a label that already exists, the final index is 
+      %     the result of an OR operation between the current and incoming 
+      %     indices. E.g.:
+      %
+      %     obj = requirecat( locator(), 0 );
+      %     setcat( obj, 0, 10, true(10, 1) );
+      %     setcat( obj, 0, 10, false(10, 1) );
+      %     find( obj, 10 ) % will be 1:10
+      %     destroy( obj );
       %
       %     See also locator/requirecat, locator/whichcat
       %
@@ -237,7 +294,30 @@ classdef locator
       %     OUT:
       %       - `loc` (uint32) -- Locator id.
       
-      loc_setcat( obj.id, cat, label, index );
+      if ( numel(label) > 1 )
+        if ( nargin < 4 )
+          index = 1:numel(label);
+        end
+        loc_setcatmult( obj.id, cat, label, index );
+      else
+        loc_setcat( obj.id, cat, label, index );
+      end
+    end
+    
+    function obj = collapsecat(obj, cats)
+      
+      %   COLLAPSECAT -- Collapse category to single label.
+      %
+      %     collapsecat( obj, 0 ) replaces all labels in category 0 with a
+      %     randomly generated label, unless category 0 has one or fewer
+      %     labels to begin with.
+      %
+      %     See also locator/setcat, locator/requirecat
+      %
+      %     IN:
+      %       - `cats` (uint32) -- Category(ies) to collapse.
+        
+      loc_collapsecat( obj.id, cats );
     end
     
     function cats = getcats(obj)

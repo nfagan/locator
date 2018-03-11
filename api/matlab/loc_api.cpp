@@ -3,106 +3,77 @@
 #include <iostream>
 #include <cstdint>
 #include <unordered_map>
+#include <array>
 
 namespace util {
     storage_t locators;
     uint32_t next_id = 0;
+    
+    namespace globals {
+        std::array<mex_func_t, ops::N_OPS> funcs;
+        bool INITIALIZED = false;
+    }
+}
+
+void util::init_locator_functions()
+{
+    using namespace util;
+    
+    if (globals::INITIALIZED)
+    {
+        return;
+    }
+    
+    globals::funcs[ops::CREATE] =                   &util::create;
+    globals::funcs[ops::DESTROY] =                  &util::destroy;
+    globals::funcs[ops::FIND] =                     &util::find;
+    globals::funcs[ops::ADD_CATEGORY] =             &util::add_category;
+    globals::funcs[ops::SET_CATEGORY] =             &util::set_category;
+    globals::funcs[ops::RM_CATEGORY] =              &util::rm_category;
+    globals::funcs[ops::HAS_CATEGORY] =             &util::has_category;
+    globals::funcs[ops::GET_CATEGORIES] =           &util::get_categories;
+    globals::funcs[ops::GET_LABELS] =               &util::get_labels;
+    globals::funcs[ops::IS_LOCATOR] =               &util::is_locator;
+    globals::funcs[ops::REQUIRE_CATEGORY] =         &util::require_category;
+    globals::funcs[ops::SIZE] =                     &util::size;
+    globals::funcs[ops::KEEP] =                     &util::keep;
+    globals::funcs[ops::COPY] =                     &util::copy;
+    globals::funcs[ops::INSTANCES] =                &util::instances;
+    globals::funcs[ops::WHICH_CATEGORY] =           &util::which_category;
+    globals::funcs[ops::HAS_LABEL] =                &util::has_label;
+    globals::funcs[ops::EQUALS] =                   &util::equals;
+    globals::funcs[ops::APPEND] =                   &util::append;
+    globals::funcs[ops::IN_CATEGORY] =              &util::in_category;
+    globals::funcs[ops::COUNT] =                    &util::count;
+    globals::funcs[ops::COLLAPSE_CATEGORY] =        &util::collapse_category;
+    globals::funcs[ops::SET_CATEGORY_MULT] =        &util::set_category_mult;
+    globals::funcs[ops::N_LABELS] =                 &util::n_labels;
+    
+    globals::INITIALIZED = true;
+    
+    std::cout << std::endl << "Initialized locator api." << std::endl;
 }
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-    if (nrhs == 0)
-    {
-        mexErrMsgIdAndTxt("locator:main", "Not enough input arguments.");
-        return;
-    }
+    //  store function pointers
+    util::init_locator_functions();
+    
+    //  make sure at least one input (op code) is present
+    util::assert_nrhs(1, 10, nrhs, "locator:main");
     
     util::assert_scalar(prhs[0], "locator:main", "Op-code must be scalar.");
     
-    uint32_t op_code = (uint32_t) mxGetScalar(prhs[0]);
+    uint32_t op_code = mxGetScalar(prhs[0]);
     
-    switch (op_code)
+    if (op_code > util::ops::N_OPS-1)
     {
-        case util::ops::CREATE:
-            util::create(nlhs, plhs, nrhs, prhs);
-            return;
-            
-        case util::ops::DESTROY:
-            util::destroy(nlhs, plhs, nrhs, prhs);
-            return;
-            
-        case util::ops::FIND:
-            util::find(nlhs, plhs, nrhs, prhs);
-            return;
-            
-        case util::ops::ADD_CATEGORY:
-            util::add_category(nlhs, plhs, nrhs, prhs);
-            return;
-            
-        case util::ops::SET_CATEGORY:
-            util::set_category(nlhs, plhs, nrhs, prhs);
-            return;
-            
-        case util::ops::HAS_CATEGORY:
-            util::has_category(nlhs, plhs, nrhs, prhs);
-            return;
-            
-        case util::ops::RM_CATEGORY:
-            util::rm_category(nlhs, plhs, nrhs, prhs);
-            return;
-            
-        case util::ops::GET_CATEGORIES:
-            util::get_categories(nlhs, plhs, nrhs, prhs);
-            return;
-            
-        case util::ops::GET_LABELS:
-            util::get_labels(nlhs, plhs, nrhs, prhs);
-            return;
-            
-        case util::ops::IS_LOCATOR:
-            util::is_locator(nlhs, plhs, nrhs, prhs);
-            return;
-            
-        case util::ops::REQUIRE_CATEGORY:
-            util::require_category(nlhs, plhs, nrhs, prhs);
-            return;
-            
-        case util::ops::SIZE:
-            util::size(nlhs, plhs, nrhs, prhs);
-            return;
-            
-        case util::ops::KEEP:
-            util::keep(nlhs, plhs, nrhs, prhs);
-            return;        
-            
-        case util::ops::COPY:
-            util::copy(nlhs, plhs, nrhs, prhs);
-            return;
-            
-        case util::ops::INSTANCES:
-            util::instances(nlhs, plhs, nrhs, prhs);
-            return;
-            
-        case util::ops::WHICH_CATEGORY:
-            util::which_category(nlhs, plhs, nrhs, prhs);
-            return;
-            
-        case util::ops::HAS_LABEL:
-            util::has_label(nlhs, plhs, nrhs, prhs);
-            return;
-            
-        case util::ops::EQUALS:
-            util::equals(nlhs, plhs, nrhs, prhs);
-            return;
-            
-        case util::ops::APPEND:
-            util::append(nlhs, plhs, nrhs, prhs);
-            return;
-            
-        default:
-            mexErrMsgIdAndTxt("locator:main", "Unrecognized op-code.");
+        mexErrMsgIdAndTxt("locator:main", "Invalid op-code.");
+        return;
     }
     
+    //  call function associated with the op-code
+    util::globals::funcs[op_code](nlhs, plhs, nrhs, prhs);    
 }
 
 //
@@ -129,7 +100,7 @@ util::types::entries_t util::copy_array_into_entries(const mxArray* src, uint32_
     return result;
 }
 
-mxArray* util::make_entries_into_array(types::entries_t& src, uint32_t n_copy)
+mxArray* util::make_entries_into_array(const types::entries_t& src, uint32_t n_copy)
 {
     mxArray* out = mxCreateUninitNumericMatrix(n_copy, 1, mxUINT32_CLASS, mxREAL);
     
@@ -171,6 +142,14 @@ void util::assert_nrhs(int actual, int expected, const char* id)
     }
 }
 
+void util::assert_nrhs(int minimum, int maximum, int actual, const char* id)
+{
+    if (actual < minimum || actual > maximum)
+    {
+        mexErrMsgIdAndTxt(id, "Wrong number of inputs.");
+    }
+}
+
 void util::assert_nlhs(int actual, int expected, const char* id)
 {
     if (actual != expected)
@@ -186,6 +165,125 @@ void util::assert_isa(const mxArray *arr, unsigned int class_id, const char* id,
         mexErrMsgIdAndTxt(id, msg);
         return;
     }
+}
+
+void util::n_labels(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+{
+    using namespace util;
+    
+    assert_nrhs(nrhs, 2, "locator:n_labels");
+    assert_nlhs(nlhs, 1, "locator:n_labels");
+    
+    assert_scalar(prhs[1], "locator:n_labels", "Id must be scalar.");
+    
+    const locator& c_locator = get_locator(mxGetScalar(prhs[1]));
+    
+    plhs[0] = mxCreateUninitNumericMatrix(1, 1, mxUINT32_CLASS, mxREAL);
+    
+    uint32_t* data = (uint32_t*) mxGetData(plhs[0]);
+    
+    data[0] = c_locator.n_labels();
+}
+
+void util::collapse_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+{
+    using namespace util;
+    
+    assert_nrhs(nrhs, 3, "locator:collapse_category");
+    assert_nlhs(nlhs, 0, "locator:collapse_category");
+    
+    const mxArray* in_id = prhs[1];
+    const mxArray* in_cats = prhs[2];
+    
+    assert_scalar(in_id, "locator:collapse_category", "Id must be scalar.");
+    
+    locator& c_locator = get_locator(mxGetScalar(in_id));
+    
+    uint32_t n_cats = mxGetNumberOfElements(in_cats);
+    uint32_t* in_cats_ptr = (uint32_t*) mxGetData(in_cats);
+    
+    bool throw_error = false;
+    
+    for (uint32_t i = 0; i < n_cats; i++)
+    {
+        uint32_t status = c_locator.collapse_category(in_cats_ptr[i]);
+        
+        if (status == locator_status::OK)
+        {
+            continue;
+        }
+        
+        if (status == locator_status::CATEGORY_DOES_NOT_EXIST)
+        {
+            throw_error = true;
+            continue;
+        }
+    }
+    
+    if (throw_error)
+    {
+        mexErrMsgIdAndTxt("locator:collapse_category", "Category does not exist.");
+    }
+}
+
+void util::count(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+{
+    using namespace util;
+    
+    assert_nrhs(nrhs, 3, "locator:count");
+    assert_nlhs(nlhs, 1, "locator:count");
+    
+    const mxArray* in_id = prhs[1];
+    const mxArray* in_labs = prhs[2];
+    
+    assert_scalar(in_id, "locator:count", "Id must be scalar.");
+    
+    const locator& c_locator = get_locator(mxGetScalar(in_id));
+    
+    uint32_t n_labs = mxGetNumberOfElements(in_labs);
+    
+    types::entries_t res(n_labs);
+    
+    uint32_t* res_ptr = res.unsafe_get_pointer();
+    uint32_t* in_labs_ptr = (uint32_t*) mxGetData(in_labs);
+    
+    for (uint32_t i = 0; i < n_labs; i++)
+    {
+        res_ptr[i] = c_locator.count(in_labs_ptr[i]);
+    }
+    
+    plhs[0] = make_entries_into_array(res, n_labs);
+}
+
+void util::in_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+{
+    using namespace util;
+    
+    assert_nrhs(nrhs, 3, "locator:all_in_category");
+    assert_nlhs(nlhs, 1, "locator:all_in_category");
+    
+    const mxArray* in_id = prhs[1];
+    const mxArray* in_cat = prhs[2];
+    
+    assert_scalar(in_id, "locator:all_in_category", "Id must be scalar.");
+    assert_scalar(in_cat, "locator:all_in_category", "Category must be scalar.");
+    
+    uint32_t id = mxGetScalar(in_id);
+    uint32_t cat = mxGetScalar(in_cat);
+    
+    const locator& c_locator = get_locator(id);
+    
+    bool exists;
+    
+    const types::entries_t result = c_locator.all_in_category(cat, &exists);
+    
+    if (!exists)
+    {
+        mexErrMsgIdAndTxt("locator:all_in_category", "Category does not exist.");
+        return;
+    }
+    
+    plhs[0] = make_entries_into_array(result, result.tail());
 }
 
 void util::append(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
@@ -214,6 +312,11 @@ void util::append(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     if (result == locator_status::CATEGORIES_DO_NOT_MATCH)
     {
         mexErrMsgIdAndTxt("locator:append", "Categories do not match between locators.");
+    }
+    
+    if (result == locator_status::LOC_OVERFLOW)
+    {
+        mexErrMsgIdAndTxt("locator:append", "Append operation would result in overflow.");
     }
 }
 
@@ -665,6 +768,115 @@ void util::add_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs
     }
 }
 
+void util::set_category_mult(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+{
+    using namespace util;
+    
+    assert_nrhs(nrhs, 5, "locator:set_category_mult");
+    assert_nlhs(nlhs, 0, "locator:set_category_mult");
+    
+    assert_scalar(prhs[1], "locator:set_category_mult", "Id must be scalar.");
+    assert_scalar(prhs[2], "locator:set_category_mult", "Category must be scalar.");
+    
+    const mxArray* in_id = prhs[1];
+    const mxArray* in_cat = prhs[2];
+    const mxArray* in_labels = prhs[3];
+    const mxArray* in_indices = prhs[4];
+    
+    uint32_t category = mxGetScalar(in_cat);
+    uint32_t* labels = (uint32_t*) mxGetData(in_labels);
+    uint32_t* indices = (uint32_t*) mxGetData(in_indices);
+    
+    uint32_t n_labs = mxGetNumberOfElements(in_labels);
+    uint32_t n_indices = mxGetNumberOfElements(in_indices);
+    
+    if (n_labs != n_indices)
+    {
+        mexErrMsgIdAndTxt("locator:set_category_mult", "Indices do not match number of labels.");
+        return;
+    }
+    
+    if (n_labs == 0)
+    {
+        return;
+    }
+    
+    locator& c_locator = get_locator(mxGetScalar(in_id));
+    
+    bool loc_empty = c_locator.is_empty();
+    
+    if (!loc_empty && n_labs > c_locator.size())
+    {
+        mexErrMsgIdAndTxt("locator:set_category_mult", "Indices exceed locator dimensions.");
+        return;
+    }
+    
+    types::entries_t sorted_indices = copy_array_into_entries(in_indices, n_labs);
+    
+    sorted_indices.unchecked_sort(n_labs);
+    
+    uint32_t* indices_ptr = sorted_indices.unsafe_get_pointer();
+    
+    if (!loc_empty && (indices_ptr[n_labs-1] > c_locator.size() || indices_ptr[0] < 1))
+    {
+        mexErrMsgIdAndTxt("locator:set_category_mult", "Indices exceed locator dimensions.");
+        return;
+    }
+    
+    uint32_t index_sz;
+    
+    if (loc_empty)
+    {
+        index_sz = n_labs;
+    }
+    else
+    {
+        index_sz = c_locator.size();
+    }
+    
+    bit_array logic_index(index_sz, false);
+    
+    bool assign_result = logic_index.assign_true(sorted_indices, -1);
+    
+    if (!assign_result)
+    {
+        mexErrMsgIdAndTxt("locator:set_category_mult", "Indices exceed locator dimensions.");
+        return;
+    }
+    
+    types::entries_t entries_labs = copy_array_into_entries(in_labels, n_labs);
+    
+    uint32_t result = c_locator.set_category(category, entries_labs, logic_index);
+    
+    if (result == locator_status::OK)
+    {
+        return;
+    }
+    
+    if (result == locator_status::CATEGORY_DOES_NOT_EXIST)
+    {
+        mexErrMsgIdAndTxt("locator:set_category_mult", "Category does not exist.");
+    }
+    
+    if (result == locator_status::LABEL_EXISTS_IN_OTHER_CATEGORY)
+    {
+        mexErrMsgIdAndTxt("locator:set_category_mult", "Label already exists in another category.");
+        return;
+    }
+    
+    if (result == locator_status::WRONG_NUMBER_OF_INDICES)
+    {
+        mexErrMsgIdAndTxt("locator:set_category_mult", "Indices do not match number of labels.");
+        return;
+    }
+    
+    if (result == locator_status::WRONG_INDEX_SIZE)
+    {
+        mexErrMsgIdAndTxt("locator:set_category_mult", "Index exceeds locator dimensions.");
+        return;
+    }
+}
+
 void util::set_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
     assert_nrhs(nrhs, 6, "locator:set_category");
@@ -674,10 +886,10 @@ void util::set_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs
     util::assert_scalar(prhs[3], "locator:set_category", "Label must be scalar.");
     util::assert_scalar(prhs[5], "locator:set_category", "Rows must be scalar.");
     
-    uint32_t loc_id = (uint32_t) mxGetScalar(prhs[1]);
-    uint32_t category = (uint32_t) mxGetScalar(prhs[2]);
-    uint32_t label = (uint32_t) mxGetScalar(prhs[3]);
-    uint32_t rows = (uint32_t) mxGetScalar(prhs[5]);
+    uint32_t loc_id = mxGetScalar(prhs[1]);
+    uint32_t category = mxGetScalar(prhs[2]);
+    uint32_t label = mxGetScalar(prhs[3]);
+    uint32_t rows = mxGetScalar(prhs[5]);
     
     util::locator& c_locator = util::get_locator(loc_id);
     

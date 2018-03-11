@@ -12,12 +12,35 @@
 #include <chrono>
 #include <cassert>
 
-util::locator::locator() : m_random_engine(std::random_device()())
+uint32_t util::get_random_id(std::function<bool (const util::locator*, uint32_t)> exists_func, const util::locator* loc)
+{
+    static std::mt19937 random_engine = std::mt19937(std::random_device()());
+    
+    uint32_t int_max = ~(uint32_t(0));
+    std::uniform_int_distribution<uint32_t> uniform_dist(0, int_max);
+    
+    uint32_t id = uniform_dist(random_engine);
+    
+    //  shouldn't happen (tm)
+    if (loc->size() == int_max)
+    {
+        return 0u;
+    }
+    
+    while (exists_func(loc, id))
+    {
+        id = uniform_dist(random_engine);
+    }
+    
+    return id;
+}
+
+util::locator::locator()
 {
     m_n_labels = 0;
 }
 
-util::locator::locator(uint32_t n_labels_hint) : m_random_engine(std::random_device()())
+util::locator::locator(uint32_t n_labels_hint)
 {
     m_n_labels = 0;
     
@@ -32,7 +55,6 @@ util::locator::~locator() noexcept
 
 //  copy-construct
 util::locator::locator(const util::locator& other) :
-    m_random_engine(other.m_random_engine),
     m_labels(other.m_labels),
     m_categories(other.m_categories),
     m_in_category(other.m_in_category),
@@ -53,7 +75,6 @@ util::locator& util::locator::operator=(const util::locator& other)
 
 //  move-construct
 util::locator::locator(util::locator&& rhs) noexcept :
-    m_random_engine(std::move(rhs.m_random_engine)),
     m_labels(std::move(rhs.m_labels)),
     m_categories(std::move(rhs.m_categories)),
     m_in_category(std::move(rhs.m_in_category)),
@@ -68,7 +89,6 @@ util::locator::locator(util::locator&& rhs) noexcept :
 //  move-assign
 util::locator& util::locator::operator=(util::locator&& rhs) noexcept
 {
-    m_random_engine = std::move(rhs.m_random_engine);
     m_labels = std::move(rhs.m_labels);
     m_categories = std::move(rhs.m_categories);
     m_in_category = std::move(rhs.m_in_category);
@@ -173,6 +193,21 @@ uint32_t util::locator::which_category(uint32_t label, bool *exists) const
     return it->second;
 }
 
+util::types::entries_t util::locator::all_in_category(uint32_t category, bool *exists) const
+{
+    auto it = m_by_category.find(category);
+    
+    if (it == m_by_category.end())
+    {
+        *exists = false;
+        return util::types::entries_t();
+    }
+    
+    *exists = true;
+    
+    return it->second;
+}
+
 uint32_t util::locator::add_category(uint32_t category)
 {
     if (has_category(category))
@@ -191,6 +226,33 @@ uint32_t util::locator::require_category(uint32_t category)
     {
         unchecked_add_category(category);
     }
+    
+    return util::locator_status::OK;
+}
+
+uint32_t util::locator::collapse_category(uint32_t category)
+{
+    if (!has_category(category))
+    {
+        return util::locator_status::CATEGORY_DOES_NOT_EXIST;
+    }
+    
+    const types::entries_t& by_category = m_by_category.at(category);
+    const uint32_t n_in_cat = by_category.tail();
+    
+    //  category is already collapsed
+    if (n_in_cat == 0 || n_in_cat == 1)
+    {
+        return util::locator_status::OK;
+    }
+    
+    uint32_t next_lab_id = get_random_label_id();
+    
+    bool is_present = false;
+    bool create_tmp = false;
+    util::bit_array index(size(), true);
+    
+    unchecked_set_category(category, next_lab_id, is_present, create_tmp, index);
     
     return util::locator_status::OK;
 }
@@ -265,39 +327,139 @@ uint32_t util::locator::set_category(uint32_t category, uint32_t label, const ut
         return util::locator_status::WRONG_INDEX_SIZE;
     }
     
-    //  if no elements are true, we can just return early, unless
-    //  we're assigning false to a present label
+    //  if no elements are true, we can just return early
     if (!index.any())
     {
-        if (!is_present)
-        {
-            return util::locator_status::OK;
-        }
-        
-        m_indices[label] = index;
-        
         return util::locator_status::OK;
     }
     
+    unchecked_set_category(category, label, is_present, c_is_empty, index);
+    
+    return util::locator_status::OK;
+}
+
+uint32_t util::locator::set_category(uint32_t category, const util::types::entries_t& labels, const util::bit_array& index)
+{
+    if (!has_category(category))
+    {
+        return util::locator_status::CATEGORY_DOES_NOT_EXIST;
+    }
+    
+    uint32_t c_size = size();
+    uint32_t index_size_m = index.size();
+    
+    bool c_is_empty = is_empty();
+    
+    //  size of incoming index must match current size, unless
+    //  locator is empty.
+    if (!c_is_empty && index_size_m != c_size)
+    {
+        return util::locator_status::WRONG_INDEX_SIZE;
+    }
+    
+    //  sum of elements in the index must match the number of labels
+    //  to assign
+    if (labels.tail() != index.sum())
+    {
+        return util::locator_status::WRONG_NUMBER_OF_INDICES;
+    }
+    
+    if (!index.any())
+    {
+        return util::locator_status::OK;
+    }
+    
+    uint32_t n_labels_in = labels.tail();
+    uint32_t* in_labels_ptr = labels.unsafe_get_pointer();
+    
+    types::entries_t in_labels_copy = labels;
+    
+    uint32_t* in_labels_copy_ptr = in_labels_copy.unsafe_get_pointer();
+    uint32_t* unique_tail = std::unique(in_labels_copy_ptr, in_labels_copy_ptr + n_labels_in);
+    uint32_t n_unique = unique_tail - in_labels_copy_ptr;
+    
+    util::dynamic_array<bool> lab_exists(n_unique);
+    bool* lab_exists_ptr = lab_exists.unsafe_get_pointer();
+    
+    for (uint32_t i = 0; i < n_unique; i++)
+    {
+        auto it = m_in_category.find(in_labels_copy_ptr[i]);
+        
+        if (it == m_in_category.end())
+        {
+            lab_exists_ptr[i] = false;
+            continue;
+        }
+
+        if (it->second != category)
+        {
+            return util::locator_status::LABEL_EXISTS_IN_OTHER_CATEGORY;
+        }
+        
+        lab_exists_ptr[i] = true;
+    }
+    
+    uint32_t index_sz;
+    
+    if (c_is_empty)
+    {
+        index_sz = n_labels_in;
+    }
+    else
+    {
+        index_sz = c_size;
+    }
+    
+    util::bit_array tmp_index(index_sz, false);
+    types::entries_t offsets = bit_array::find(index);
+    uint32_t* offset_ptr = offsets.unsafe_get_pointer();
+    
+    for (uint32_t i = 0; i < n_unique; i++)
+    {
+        uint32_t c_label = in_labels_copy_ptr[i];
+        
+        for (uint32_t j = 0; j < n_labels_in; j++)
+        {
+            if (in_labels_ptr[j] == c_label)
+            {
+                uint32_t offset = offset_ptr[j];
+                tmp_index.unchecked_place(true, offset);
+            }
+        }
+        
+        unchecked_set_category(category, c_label, lab_exists_ptr[i], is_empty(), tmp_index);
+        
+        tmp_index.fill(false);
+    }
+    
+    return util::locator_status::OK;
+}
+
+void util::locator::unchecked_set_category(uint32_t category, uint32_t label, bool is_present, bool create_tmp, const util::bit_array& index)
+{
     util::types::entries_t& by_category = m_by_category[category];
     
     uint32_t* by_category_ptr = by_category.unsafe_get_pointer();
     uint32_t n_by_category = by_category.tail();
+    uint32_t c_sz = size();
     
     //  set false at rows of other indices
     for (uint32_t i = 0; i < n_by_category; i++)
     {
         uint32_t lab = by_category_ptr[i];
         
+        //  if updating a pre-existing label, set true to elements
+        //  that are currently false
         if (lab == label)
         {
-            m_indices[lab] = index;
+            util::bit_array& c_index = m_indices[lab];
+            util::bit_array::unchecked_dot_or(c_index, c_index, index, 0, c_sz);
             continue;
         }
         
         util::bit_array& lab_index = m_indices[lab];
         
-        util::bit_array::unchecked_dot_and_not(lab_index, lab_index, index, 0, lab_index.size());
+        util::bit_array::unchecked_dot_and_not(lab_index, lab_index, index, 0, c_sz);
     }
     
     if (!is_present)
@@ -313,7 +475,7 @@ uint32_t util::locator::set_category(uint32_t category, uint32_t label, const ut
         m_labels.sort();
     }
     
-    if (c_is_empty)
+    if (create_tmp)
     {
         m_tmp_index = util::bit_array(index.size(), false);
     }
@@ -322,8 +484,6 @@ uint32_t util::locator::set_category(uint32_t category, uint32_t label, const ut
     {
         prune();
     }
-    
-    return util::locator_status::OK;
 }
 
 void util::locator::prune()
@@ -424,6 +584,13 @@ uint32_t util::locator::append(const util::locator &other)
     uint32_t original_sz = size();
     uint32_t other_sz = other.size();
     
+    uint32_t int_max = ~(uint32_t(0));
+    
+    if (int_max - original_sz < other_sz)
+    {
+        return util::locator_status::LOC_OVERFLOW;
+    }
+    
     for (uint32_t i = 0; i < m_n_labels; i++)
     {
         uint32_t own_label = own_label_ptr[i];
@@ -502,7 +669,7 @@ void util::locator::empty()
     m_n_labels = 0;
 }
 
-util::types::numeric_indices_t util::locator::find(const uint32_t label, uint32_t index_offset)
+util::types::numeric_indices_t util::locator::find(const uint32_t label, uint32_t index_offset) const
 {
     util::types::numeric_indices_t empty_result;
     
@@ -511,7 +678,7 @@ util::types::numeric_indices_t util::locator::find(const uint32_t label, uint32_
         return empty_result;
     }
     
-    const util::bit_array& index = m_indices[label];
+    const util::bit_array& index = m_indices.at(label);
     
     return util::bit_array::find(index, index_offset);
 }
@@ -587,6 +754,18 @@ uint32_t util::locator::n_labels() const
     return m_n_labels;
 }
 
+uint32_t util::locator::count(uint32_t label) const
+{
+    auto it = m_indices.find(label);
+    
+    if (it == m_indices.end())
+    {
+        return 0u;
+    }
+    
+    return it->second.sum();
+}
+
 bool util::locator::has_label(uint32_t label) const
 {
     return m_in_category.find(label) != m_in_category.end();
@@ -629,33 +808,12 @@ uint32_t util::locator::find_category(uint32_t category) const
     return find_category(category, &dummy);
 }
 
-uint32_t util::locator::get_random_label_id()
+uint32_t util::locator::get_random_label_id() const
 {
-    return get_random_id(&util::locator::has_label);
+    return util::get_random_id(&util::locator::has_label, this);
 }
 
-uint32_t util::locator::get_random_category_id()
+uint32_t util::locator::get_random_category_id() const
 {
-    return get_random_id(&util::locator::has_category);
-}
-
-uint32_t util::locator::get_random_id(std::function<bool(const util::locator*, uint32_t)> exists_func)
-{
-    uint32_t int_max = ~(uint32_t(0));
-    std::uniform_int_distribution<uint32_t> uniform_dist(0, int_max);
-    
-    uint32_t id = uniform_dist(m_random_engine);
-    
-    //  shouldn't happen (tm)
-    if (size() == int_max)
-    {
-        return 0u;
-    }
-    
-    while (exists_func(this, id))
-    {
-        id = uniform_dist(m_random_engine);
-    }
-    
-    return id;
+    return util::get_random_id(&util::locator::has_category, this);
 }

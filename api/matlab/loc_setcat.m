@@ -15,8 +15,13 @@ function loc = loc_setcat(loc, cat, label, indices, rows)
 op_code = loc_opcodes( 'set_cat' );
 
 if ( nargin == 4 )
-  inds = uint32( find(indices) );
-  rows = uint32( numel(indices) );
+  if ( isa(indices, 'logical') )
+    inds = uint32( find(indices) );
+    rows = uint32( numel(indices) );
+  else
+    inds = uint32( indices );
+    rows = loc_size( loc );
+  end
 else
   inds = indices;
 end
