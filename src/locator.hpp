@@ -62,6 +62,7 @@ public:
     
     void clear();
     void empty();
+    void resize(uint32_t to_size);
     
     uint32_t add_category(uint32_t category);
     uint32_t set_category(uint32_t category, uint32_t label, const util::bit_array& index);
@@ -71,6 +72,7 @@ public:
     uint32_t collapse_category(uint32_t category);
     uint32_t which_category(uint32_t label, bool* exists) const;
     types::entries_t all_in_category(uint32_t category, bool* exists) const;
+    types::entries_t full_category(uint32_t category, bool* exists) const;
     
     bool has_label(uint32_t label) const;
     bool has_category(uint32_t category) const;
@@ -91,7 +93,7 @@ public:
     
     uint32_t append(const util::locator& other);
     
-    types::entries_t combinations(const types::entries_t& categories) const;
+    types::entries_t combinations(const types::entries_t& categories, bool* exist) const;
     
     types::numeric_indices_t find(const types::entries_t& labels, uint32_t index_offset = 0u);
     types::numeric_indices_t find(const uint32_t label, uint32_t index_offset = 0u) const;

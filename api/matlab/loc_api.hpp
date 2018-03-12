@@ -18,6 +18,8 @@ namespace util {
     void create(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     void destroy(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     
+    void resize(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
+    
     void size(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     void count(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     void n_labels(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
@@ -28,6 +30,9 @@ namespace util {
     void require_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     void rm_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     void collapse_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
+    void full_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
+    
+    void combinations(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     
     void keep(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     void append(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);

@@ -11,6 +11,7 @@
 #include <iostream>
 #include <chrono>
 #include <cassert>
+#include <string>
 
 uint32_t util::get_random_id(std::function<bool (const util::locator*, uint32_t)> exists_func, const util::locator* loc)
 {
@@ -206,6 +207,124 @@ util::types::entries_t util::locator::all_in_category(uint32_t category, bool *e
     *exists = true;
     
     return it->second;
+}
+
+util::types::entries_t util::locator::full_category(uint32_t category, bool *exists) const
+{
+    auto it = m_by_category.find(category);
+    
+    if (it == m_by_category.end())
+    {
+        *exists = false;
+        return util::types::entries_t();
+    }
+    
+    *exists = true;
+    
+    const util::types::entries_t& labs = it->second;
+    
+    uint32_t n_in_cat = labs.tail();
+    
+    if (n_in_cat == 0)
+    {
+        return util::types::entries_t();
+    }
+    
+    uint32_t* labs_ptr = labs.unsafe_get_pointer();
+    
+    uint32_t sz = size();
+    
+    util::types::entries_t result(sz);
+    uint32_t* result_ptr = result.unsafe_get_pointer();
+    
+    std::memset(result_ptr, 0u, sz * sizeof(uint32_t));
+    
+    for (uint32_t i = 0; i < n_in_cat; i++)
+    {
+        uint32_t lab = labs_ptr[i];
+        auto inds = util::bit_array::find(m_indices.at(lab));
+        uint32_t* inds_ptr = inds.unsafe_get_pointer();
+        
+        uint32_t n_inds = inds.tail();
+        
+        for (uint32_t j = 0; j < n_inds; j++)
+        {
+            result_ptr[inds_ptr[j]] = lab;
+        }
+    }
+    
+    return result;
+}
+
+util::types::entries_t util::locator::combinations(const types::entries_t& categories, bool* exist) const
+{
+    using namespace util;
+    
+    types::entries_t result;
+    
+    uint32_t n_cats_in = categories.tail();
+    
+    *exist = true;
+    
+    if (n_cats_in == 0)
+    {
+        return result;
+    }
+    
+    uint32_t* cat_ptr = categories.unsafe_get_pointer();
+    
+    dynamic_array<types::entries_t, dynamic_allocator<types::entries_t>> full_categories(n_cats_in);
+    types::entries_t* full_categories_ptr = full_categories.unsafe_get_pointer();
+    
+    for (uint32_t i = 0; i < n_cats_in; i++)
+    {
+        full_categories_ptr[i] = full_category(cat_ptr[i], exist);
+        
+        if (!(*exist))
+        {
+            return result;
+        }
+        
+        if (full_categories_ptr[i].tail() == 0)
+        {
+            return result;
+        }
+    }
+    
+    uint32_t sz = size();
+    
+    std::string hash_code;
+    std::unordered_map<std::string, uint8_t> combination_exists;
+    
+    result.resize(2048);
+    result.seek_tail_to_start();
+    
+    for (uint32_t i = 0; i < sz; i++)
+    {
+        for (uint32_t j = 0; j < n_cats_in; j++)
+        {
+            uint32_t* full_cat = full_categories_ptr[j].unsafe_get_pointer();
+            hash_code += std::to_string(full_cat[i]);
+            hash_code += "A";
+        }
+        
+        bool c_exists = combination_exists.find(hash_code) != combination_exists.end();
+        
+        if (!c_exists)
+        {
+            for (uint32_t j = 0; j < n_cats_in; j++)
+            {
+                uint32_t* full_cat = full_categories_ptr[j].unsafe_get_pointer();
+                result.push(full_cat[i]);
+            }
+            
+            combination_exists[hash_code] = 0;
+        }
+        
+        hash_code.clear();
+    }
+    
+    return result;
 }
 
 uint32_t util::locator::add_category(uint32_t category)
@@ -608,7 +727,7 @@ uint32_t util::locator::append(const util::locator &other)
             continue;
         }
         
-        m_indices[own_label].append(util::bit_array(other_sz, false));
+        m_indices[own_label].resize(original_sz + other_sz);
     }
     
     uint32_t remaining_labels = other_labels.tail();
@@ -667,6 +786,26 @@ void util::locator::empty()
     }
     
     m_n_labels = 0;
+}
+
+void util::locator::resize(uint32_t to_size)
+{
+    uint32_t orig_size = size();
+    
+    for (auto& it : m_indices)
+    {
+        it.second.resize(to_size);
+    }
+    
+    if (to_size < orig_size)
+    {
+        prune();
+    }
+    
+    if (orig_size > 0)
+    {
+        m_tmp_index.resize(to_size);
+    }
 }
 
 util::types::numeric_indices_t util::locator::find(const uint32_t label, uint32_t index_offset) const

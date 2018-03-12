@@ -5,6 +5,8 @@
 #include <cstdint>
 #include <functional>
 
+void test_combinations();
+void test_resize();
 void test_append();
 void test_collapse();
 void test_append_single();
@@ -39,6 +41,8 @@ int main(int argc, char* argv[])
     std::cout << "BEGIN LOCATOR" << std::endl;
     using util::profile::simple;
     
+    test_combinations();
+    test_resize();
     test_set_category_mult_labels();
     test_collapse();
     test_set_category_mult_categories2();
@@ -82,6 +86,121 @@ util::bit_array get_randomly_filled_array(uint32_t sz, uint32_t n_true)
     }
     
     return arr;
+}
+
+void test_combinations()
+{
+    using namespace util;
+    
+    locator loc;
+    
+    loc.require_category(0);
+    
+    bit_array index(1000, false);
+    
+    index.place(true, 1);
+    
+    loc.set_category(0, 1, index);
+    
+    index.place(true, 2);
+    
+    loc.set_category(0, 2, index);
+    
+    types::entries_t cats;
+    cats.push(0);
+    
+    bool exists;
+    
+    auto res = loc.combinations(cats, &exists);
+    
+    assert(exists);
+    assert(res.tail() == 2);
+    
+    //
+    //
+    //
+    
+    locator loc2;
+    loc2.require_category(0);
+    loc2.require_category(1);
+    
+    bit_array index2(1000, true);
+    bit_array index3(1000, false);
+    
+    index3.place(true, 2);
+    
+    loc2.set_category(0, 1, index2);
+    
+    types::entries_t cats2;
+    cats2.push(0);
+    cats2.push(1);
+    
+    res = loc2.combinations(cats2, &exists);
+    
+    assert(exists);
+    assert(res.tail() == 0);
+    
+    loc2.set_category(0, 2, index3);
+    
+//    loc2.set_category(1, 3, index2);
+    loc2.set_category(1, 4, index3);
+    
+    res = loc2.combinations(cats2, &exists);
+    
+    assert(exists);
+    
+    std::cout << res.tail() << std::endl;
+    
+    for (uint32_t i = 0; i < res.tail(); i++)
+    {
+        std::cout << res.at(i) << std::endl;
+    }
+    
+    assert(res.tail() == 4);
+    
+}
+
+void test_resize()
+{
+    using namespace util;
+    
+    locator loc;
+    
+    loc.require_category(0);
+    loc.set_category(0, 1, bit_array(1000, true));
+    
+    std::unordered_map<uint32_t, locator> loc_map;
+    loc_map[0] = loc;
+    
+    uint32_t n_iters = 1000;
+    
+    for (uint32_t i = 0; i < n_iters; i++)
+    {
+        locator& loca = loc_map[0];
+        locator locb = loca;
+        
+        uint32_t new_size = rand() % 10000;
+        
+        locb.resize(new_size);
+        
+        assert(locb.size() == new_size);
+        
+        if (new_size == 0)
+        {
+            assert(locb.n_labels() == 0);
+        }
+        else
+        {
+            assert(locb.n_labels() == 1);
+        }
+        
+        loc_map[i] = std::move(locb);
+    }
+    
+    for (uint32_t i = 0; i < n_iters; i++)
+    {
+        loc_map.erase(i);
+    }
 }
 
 void test_collapse()

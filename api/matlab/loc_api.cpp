@@ -5,12 +5,14 @@
 #include <unordered_map>
 #include <array>
 
-namespace util {
-    storage_t locators;
-    uint32_t next_id = 0;
-    
+namespace util {    
     namespace globals {
-        std::array<mex_func_t, ops::N_OPS> funcs;
+        util::storage_t locators;
+        
+        uint32_t next_id = 0;
+        
+        std::array<util::mex_func_t, util::ops::N_OPS> funcs;
+        
         bool INITIALIZED = false;
     }
 }
@@ -48,10 +50,13 @@ void util::init_locator_functions()
     globals::funcs[ops::COLLAPSE_CATEGORY] =        &util::collapse_category;
     globals::funcs[ops::SET_CATEGORY_MULT] =        &util::set_category_mult;
     globals::funcs[ops::N_LABELS] =                 &util::n_labels;
+    globals::funcs[ops::RESIZE] =                   &util::resize;
+    globals::funcs[ops::COMBINATIONS] =             &util::combinations;
+    globals::funcs[ops::FULL_CATEGORY] =            &util::full_category;
     
     globals::INITIALIZED = true;
     
-    std::cout << std::endl << "Initialized locator api." << std::endl;
+    std::cout << std::endl << "Initialized locator api." << std::endl << std::endl;
 }
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
@@ -66,7 +71,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     uint32_t op_code = mxGetScalar(prhs[0]);
     
-    if (op_code > util::ops::N_OPS-1)
+    if (op_code >= util::ops::N_OPS)
     {
         mexErrMsgIdAndTxt("locator:main", "Invalid op-code.");
         return;
@@ -116,9 +121,9 @@ mxArray* util::make_entries_into_array(const types::entries_t& src, uint32_t n_c
 
 util::locator& util::get_locator(uint32_t id)
 {
-    auto it = util::locators.find(id);
+    auto it = util::globals::locators.find(id);
     
-    if (it == util::locators.end())
+    if (it == util::globals::locators.end())
     {
         mexErrMsgIdAndTxt("locator:get_locator", "Unrecognized id.");
     }
@@ -165,6 +170,110 @@ void util::assert_isa(const mxArray *arr, unsigned int class_id, const char* id,
         mexErrMsgIdAndTxt(id, msg);
         return;
     }
+}
+
+void util::combinations(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+{
+    using namespace util;
+    
+    assert_nrhs(nrhs, 3, "locator:combinations");
+    assert_nlhs(nlhs, 1, "locator:resize");
+    
+    assert_scalar(prhs[1], "locator:resize", "Id must be scalar.");
+    
+    const locator& c_locator = get_locator(mxGetScalar(prhs[1]));
+    
+    const mxArray* in_cats = prhs[2];
+    uint32_t n_in_cats = mxGetNumberOfElements(in_cats);
+    
+    const types::entries_t in_cats_entries = copy_array_into_entries(in_cats, n_in_cats);
+    
+    bool exists;
+    
+    const types::entries_t result = c_locator.combinations(in_cats_entries, &exists);
+    const uint32_t n_result = result.tail();
+    
+    if (!exists)
+    {
+        mexErrMsgIdAndTxt("locator:collapse_category", "Category does not exist.");
+        return;
+    }
+    
+    if (n_result == 0)
+    {
+        plhs[0] = mxCreateUninitNumericMatrix(0, n_in_cats, mxUINT32_CLASS, mxREAL);
+        return;
+    }
+    
+    uint32_t n_rows = n_result / n_in_cats;
+    
+    plhs[0] = make_entries_into_array(result, n_result);
+}
+
+void util::full_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+{
+    using namespace util;
+    
+    assert_nrhs(nrhs, 3, "locator:full_category");
+    assert_nlhs(nlhs, 1, "locator:full_category");
+    
+    assert_scalar(prhs[1], "locator:full_category", "Id must be scalar.");
+    
+    const mxArray* in_cats = prhs[2];
+    const uint32_t n_cats = mxGetNumberOfElements(in_cats);
+    
+    const locator& c_locator = get_locator(mxGetScalar(prhs[1]));
+    
+    uint32_t* cats = (uint32_t*) mxGetData(in_cats);
+    
+    for (uint32_t i = 0; i < n_cats; i++)
+    {
+        if (!c_locator.has_category(cats[i]))
+        {
+            mexErrMsgIdAndTxt("locator:collapse_category", "Category does not exist.");
+        }
+    }
+    
+    if (c_locator.is_empty())
+    {
+        plhs[0] = mxCreateUninitNumericMatrix(0, n_cats, mxUINT32_CLASS, mxREAL);
+        return;
+    }
+    
+    uint32_t sz = c_locator.size();
+    
+    types::entries_t linear_indices(sz * n_cats);
+    uint32_t* linear_indices_ptr = linear_indices.unsafe_get_pointer();
+    
+    for (uint32_t i = 0; i < n_cats; i++)
+    {
+        bool dummy;
+        auto one_cat = c_locator.full_category(cats[i], &dummy);
+        
+        uint32_t* src_ptr = one_cat.unsafe_get_pointer();
+        uint32_t* dest_ptr = linear_indices_ptr + (i * sz);
+        
+        std::memcpy(dest_ptr, src_ptr, sz * sizeof(uint32_t));         
+    }
+    
+    plhs[0] = make_entries_into_array(linear_indices, sz * n_cats);
+}
+
+void util::resize(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+{
+    using namespace util;
+    
+    assert_nrhs(nrhs, 3, "locator:resize");
+    assert_nlhs(nlhs, 0, "locator:resize");
+    
+    assert_scalar(prhs[1], "locator:resize", "Id must be scalar.");
+    assert_scalar(prhs[2], "locator:resize", "New size must be scalar.");
+    
+    locator& c_locator = get_locator(mxGetScalar(prhs[1]));
+    
+    uint32_t to_size = mxGetScalar(prhs[2]);
+    
+    c_locator.resize(to_size);
 }
 
 void util::n_labels(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
@@ -436,7 +545,7 @@ void util::instances(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     util::assert_nrhs(nrhs, 1, "locator:instances");
     
-    uint32_t n_instances = (uint32_t) util::locators.size();
+    uint32_t n_instances = (uint32_t) util::globals::locators.size();
     
     if (n_instances == 0)
     {
@@ -448,7 +557,7 @@ void util::instances(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     ids.seek_tail_to_start();
     
-    for (const auto& it : util::locators)
+    for (const auto& it : util::globals::locators)
     {
         ids.push(it.first);
     }
@@ -471,15 +580,15 @@ void util::copy(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     util::locator loc_copy = c_locator;
     
-    uint32_t out_id = util::next_id;
+    uint32_t out_id = util::globals::next_id;
     
-    util::locators[out_id] = std::move(loc_copy);
+    util::globals::locators[out_id] = std::move(loc_copy);
     
     plhs[0] = mxCreateUninitNumericMatrix(1, 1, mxUINT32_CLASS, mxREAL);
     uint32_t* out_ptr = (uint32_t*) mxGetData(plhs[0]);
     out_ptr[0] = out_id;
     
-    util::next_id++;
+    util::globals::next_id++;
 }
 
 void util::size(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
@@ -514,7 +623,7 @@ void util::is_locator(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]
     if (nrhs > 1)
     {
         uint32_t id = (uint32_t) mxGetScalar(prhs[1]);
-        exists = util::locators.find(id) != util::locators.end();
+        exists = util::globals::locators.find(id) != util::globals::locators.end();
     }
     
     plhs[0] = mxCreateLogicalScalar(exists);
@@ -958,19 +1067,19 @@ void util::create(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         return;
     }
     
-    uint32_t id = util::next_id;
+    uint32_t id = util::globals::next_id;
     
     if (nrhs == 1)
     {
-        util::locators[id] = std::move(util::locator());
+        util::globals::locators[id] = std::move(util::locator());
     }
     else
     {
         uint32_t size_hint = (uint32_t) mxGetScalar(prhs[1]);
-        util::locators[id] = std::move(util::locator(size_hint));
+        util::globals::locators[id] = std::move(util::locator(size_hint));
     }
     
-    util::next_id++;
+    util::globals::next_id++;
     
     plhs[0] = mxCreateUninitNumericMatrix(1, 1, mxUINT32_CLASS, mxREAL);
     uint32_t* out_ptr = (uint32_t*) mxGetData(plhs[0]);
@@ -981,14 +1090,14 @@ void util::destroy(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
     if (nrhs == 1)
     {
-        util::locators.clear();
-        util::next_id = 0;
+        util::globals::locators.clear();
+        util::globals::next_id = 0;
         return;
     }
     
     uint32_t id = (uint32_t) mxGetScalar(prhs[1]);
     
-    size_t n_erased = util::locators.erase(id);
+    size_t n_erased = util::globals::locators.erase(id);
     
     if (n_erased != 1)
     {

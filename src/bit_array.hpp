@@ -30,6 +30,8 @@ public:
     uint32_t size() const;
     uint32_t sum() const;
     
+    void resize(uint32_t to_size);
+    
     void push(bool value);
     void place(bool value, uint32_t at_index);
     void unchecked_place(bool value, uint32_t at_index);

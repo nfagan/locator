@@ -1,6 +1,8 @@
 function loc = loc_setcatmult(loc, cat, labels, indices)
 
-%   LOC_SETCATMULT -- Assign multiple labels to category, at index
+%   LOC_SETCATMULT -- Assign multiple labels to category, at index.
+%
+%     See also loc_setcat
 %
 %     IN:
 %       - `loc` (uint32) -- Locator id.
@@ -10,16 +12,35 @@ function loc = loc_setcatmult(loc, cat, labels, indices)
 %     OUT:
 %       - `loc` (uint32) -- Locator id.
 
-op_code = loc_opcodes( 'set_cat_mult' );
+op_code = loc_opcodes( 'set_cat' );
+
+labels = uint32( labels(:) );
+
+sz = loc_size( loc );
+
+if ( sz == 0 )
+  sz = uint32( numel(labels) );
+end
 
 if ( nargin < 4 )
-  indices = uint32( 1:numel(labels) );
+  indices = true( numel(labels), 1 );
+else
+  if ( ~isa(indices, 'logical') )
+    inds = true( sz, 1 );
+    inds(indices) = true;
+    indices = inds;
+  end
 end
 
-if ( isa(indices, 'logical') )
-  indices = find( indices );
-end
+unqs = unique( labels );
 
-loc_api( op_code, loc, uint32(cat), uint32(labels), uint32(indices) );
+cat = uint32( cat );
+
+for i = 1:numel(unqs)
+  lab = unqs(i);
+  ind = labels == lab & indices;
+  index = uint32( find(ind) );
+  loc_api( op_code, loc, cat, lab, index, sz );
+end
 
 end

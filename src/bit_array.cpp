@@ -335,6 +335,45 @@ uint32_t util::bit_array::sum() const
     return c_sum;
 }
 
+void util::bit_array::resize(uint32_t to_size)
+{
+    if (to_size == m_size)
+    {
+        return;
+    }
+    
+    uint32_t c_data_size = get_data_size(m_size);
+    uint32_t new_data_size = get_data_size(to_size);
+    uint32_t orig_size = m_size;
+    
+    uint32_t* data = m_data.unsafe_get_pointer();
+    
+    if (c_data_size > 0)
+    {
+        data[c_data_size-1] = get_final_bin_with_zeros(data, c_data_size);
+    }
+    
+    m_size = to_size;
+    
+    if (new_data_size == c_data_size)
+    {
+        return;
+    }
+    
+    m_data.resize(new_data_size);
+    
+    if (to_size < orig_size)
+    {
+        return;
+    }
+    
+    data = m_data.unsafe_get_pointer();
+    
+    uint32_t n_set = new_data_size - c_data_size;
+    
+    std::memset(data + c_data_size, 0u, n_set * sizeof(uint32_t));
+}
+
 uint32_t util::bit_array::size() const
 {
     return m_size;

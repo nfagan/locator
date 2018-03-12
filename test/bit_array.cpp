@@ -8,6 +8,7 @@
 #include "utilities.hpp"
 
 void test_all();
+void test_resize();
 void test_append_one();
 void test_bit_array();
 void test_bit_array_copy();
@@ -29,10 +30,13 @@ double test_find(uint32_t sz);
 void test_find_multi();
 void test_any_all();
 void test_assign_true();
+double test_profile_append(uint32_t sz);
+double test_profile_resize(uint32_t sz);
 
 int main(int argc, char* argv[])
 {
     std::cout << "BEGIN BIT_ARRAY" << std::endl;
+    test_resize();
     test_append_one();
     test_any_all();
     test_basic();
@@ -45,10 +49,135 @@ int main(int argc, char* argv[])
 //    test_thread2();
     test_keep_multi(1000);
     test_append_multi();
-//
+    
+    util::profile::simple(std::bind(test_profile_append, 1e3), "append", 1e3);
+    util::profile::simple(std::bind(test_profile_resize, 1e3), "resize", 1e3);
+    
     std::cout << "END BIT_ARRAY" << std::endl;
     
     return 0;
+}
+
+double test_profile_append(uint32_t sz = 1e3)
+{
+    using namespace util;
+    
+    bit_array barray(sz, true);
+    
+    profile::time_point_t t1 = profile::clock_t::now();
+    
+    barray.append(bit_array(sz, false));
+    
+    profile::time_point_t t2 = profile::clock_t::now();
+    
+    return profile::ellapsed_time_s(t1, t2);
+}
+
+double test_profile_resize(uint32_t sz = 1e3)
+{
+    using namespace util;
+    
+    bit_array barray(sz, true);
+    
+    profile::time_point_t t1 = profile::clock_t::now();
+    
+    barray.resize(sz*2);
+    
+    profile::time_point_t t2 = profile::clock_t::now();
+    
+    return profile::ellapsed_time_s(t1, t2);
+}
+
+void test_resize()
+{
+    using namespace util;
+    
+    for (uint32_t i = 0; i < 10000; i++)
+    {
+        bit_array barray;
+        
+        barray.resize(i);
+        
+        assert(barray.size() == i);
+        
+        assert(!barray.any());
+    }
+    
+    for (uint32_t i = 0; i < 1000; i++)
+    {
+        uint32_t sz = rand() % 100;
+        uint32_t new_sz = 100 + rand() % 100;
+        bit_array barray(sz);
+        
+        barray.fill(true);
+        
+        barray.resize(new_sz);
+        
+        assert(barray.size() == new_sz);
+        
+        auto inds = bit_array::find(barray);
+        
+        uint32_t search_sz = new_sz > sz ? sz : new_sz;
+        
+        assert(inds.tail() == search_sz);
+        
+        if (inds.tail() > 0)
+        {
+            assert(inds.at(inds.tail()-1) == search_sz-1);
+        }
+    }
+    
+    for (uint32_t i = 0; i < 1000; i++)
+    {
+        uint32_t sz = 100 + rand() % 100;
+        uint32_t new_sz = rand() % 100;
+        
+        bit_array barray(sz);
+        
+        barray.fill(true);
+        
+        barray.resize(new_sz);
+        
+        assert(barray.size() == new_sz);
+        
+        auto inds = bit_array::find(barray);
+        
+        assert(inds.tail() == new_sz);
+        
+        if (inds.tail() > 0)
+        {
+            assert(inds.at(inds.tail()-1) == new_sz-1);
+        }
+    }
+    
+    for (uint32_t i = 0; i < 1000; i++)
+    {
+        uint32_t sz = 1 + rand() % 100;
+        uint32_t new_sz = rand() % 100 + 101;
+        
+        bit_array barray(sz, false);
+        
+        barray.place(true, sz-1);
+        
+        barray.resize(new_sz);
+        
+        auto inds = bit_array::find(barray);
+        
+        assert(inds.tail() == 1 && inds.at(0) == sz-1);
+    }
+    
+    for (uint32_t i = 0; i < 1000; i++)
+    {
+        uint32_t sz = rand() % 10000;
+        uint32_t new_sz = 0;
+        
+        bit_array barray(sz, true);
+        
+        barray.resize(new_sz);
+        
+        assert(barray.sum() == 0);
+        assert(!barray.any());
+    }
 }
 
 void test_append_one()

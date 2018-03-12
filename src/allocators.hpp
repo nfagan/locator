@@ -57,6 +57,12 @@ T* util::trivial_allocator<T>::create(uint32_t with_size)
 template<typename T>
 T* util::trivial_allocator<T>::resize(T* data, uint32_t to_size, uint32_t original_size)
 {
+    if (to_size == 0)
+    {
+        dispose(data);
+        return nullptr;
+    }
+    
     size_t dest_size = to_size * sizeof(T);
     return (T*) std::realloc(data, dest_size);
 }

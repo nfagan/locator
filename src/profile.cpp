@@ -28,7 +28,7 @@ void util::profile::simple(std::function<double(void)> func, std::string alias, 
     std::cout << "--" << std::endl;
 }
 
-double util::profile::ellapsed_time_s(std::chrono::high_resolution_clock::time_point t1, std::chrono::high_resolution_clock::time_point t2)
+double util::profile::ellapsed_time_s(util::profile::time_point_t t1, util::profile::time_point_t t2)
 {
     return std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count();
 }

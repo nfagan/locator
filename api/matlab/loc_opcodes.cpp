@@ -27,7 +27,10 @@ const util::op_map_t op_map({
     {"count", util::ops::COUNT},
     {"collapse_cat", util::ops::COLLAPSE_CATEGORY},
     {"set_cat_mult", util::ops::SET_CATEGORY_MULT},
-    {"n_labels", util::ops::N_LABELS}
+    {"n_labels", util::ops::N_LABELS},
+    {"resize", util::ops::RESIZE},
+    {"combinations", util::ops::COMBINATIONS},
+    {"full_cat", util::ops::FULL_CATEGORY}
 });
 
 void use_std_string(mxArray *plhs[], const mxArray *prhs[]);

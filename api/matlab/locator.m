@@ -150,6 +150,52 @@ classdef locator
       inds = loc_find( obj.id, labels );
     end
     
+    function [I, C] = findall(obj, categories)
+      
+      %   FINDALL -- Get indices of combinations of labels in categories.
+      %
+      %     I = findall( obj, [1, 3] ) returns a cell array of uint32
+      %     indices `I`, where each index in I identifies a unique
+      %     combination of labels in categories 1 and 3.
+      %
+      %     [I, C] = ... also returns `C`, an MxN matrix of M categories by
+      %     N combinations, where each column `i` of C identifies the
+      %     labels used to generate the i-th index of I.
+      %
+      %     See also locator/combs
+      %
+      %     IN:
+      %       - `categories` (uint32)
+      %     OUT:
+      %       - `I` (cell array of uint32)
+      %       - `C` (uint32)
+      
+      C = combs( obj, categories );      
+      I = cell( 1, size(C, 2) );
+      for i = 1:numel(I)
+        I{i} = find( obj, C(:, i) );
+      end
+    end
+    
+    function cmbs = combs(obj, categories)
+      
+      %   COMBS -- Get present combinations of labels in categories.
+      %
+      %     C = combs( obj, [1, 3, 5] ) returns all present combinations of
+      %     labels in categories 1, 3 and 5. `C` is a 3xN matrix of N
+      %     combinations, where the i-th row of `C` corresponds to the i-th
+      %     inputted category.
+      %
+      %     See also locator/find, locator/setcat, locator/initcat
+      %
+      %     IN:
+      %       - `categories` (uint32)
+      %     OUT:
+      %       - `cmbs` (uint32)
+      
+      cmbs = loc_combs( obj.id, categories );      
+    end
+    
     function cts = count(obj, labels)
       
       %   COUNT -- Count the number of rows associated with a label(s).
@@ -196,6 +242,18 @@ classdef locator
       %       - `category` (uint32)
       
       loc_rmcat( obj.id, categories );
+    end
+    
+    function mat = fullcat(obj, categories)
+      
+      %   FULLCAT -- Get the complete category(ies) in the locator.
+      %
+      %     See also locator/whichcat, locator/setcat
+      %
+      %     IN:
+      %       - `categories` (uint32)
+      
+      mat = loc_fullcat( obj.id, categories );
     end
     
     function obj = requirecat(obj, category)
@@ -296,11 +354,48 @@ classdef locator
       
       if ( numel(label) > 1 )
         if ( nargin < 4 )
-          index = 1:numel(label);
+          index = 1:numel( label );
         end
         loc_setcatmult( obj.id, cat, label, index );
       else
         loc_setcat( obj.id, cat, label, index );
+      end
+    end
+    
+    function obj = initcat(obj, cat, labels, sz)
+      
+      %   INITCAT -- Initialize a complete category.
+      %
+      %     initcat( obj, 0, 2 ) initializes the category 0 with the label
+      %     2, associated with an all-true Mx1 index, where M is equal to
+      %     numel(obj), or one, if the object is empty.
+      %
+      %     initcat( obj, 0, 1, 100 ) initializes the category 0 with the
+      %     label 1, associated with an all-true 100x1 index. An error is
+      %     thrown if the size of the locator is not 100.
+      %
+      %     IN:
+      %       - `cat` (uint32)
+      %       - `labels` (uint32)
+      %       - `sz` (uint32)
+      
+      if ( nargin < 4 )
+        if ( isempty(obj) )
+          index = true( numel(labels), 1 );
+        else
+          index = true( numel(obj), 1 );
+        end
+      else
+        index = true( sz, 1 );
+      end
+      
+      addcat( obj, cat );
+      
+      try
+        setcat( obj, cat, labels, index );
+      catch err
+        rmcat( obj, cat );
+        throw( err );
       end
     end
     
@@ -411,6 +506,28 @@ classdef locator
       loc_keep( obj.id, loc_find(obj.id, labels) );
     end
     
+    function obj = resize(obj, to_size)
+      
+      %   RESIZE -- Resize the locator.
+      %
+      %     Resizing to a value smaller than the current size truncates
+      %     indices to the new size.
+      %
+      %     Resizing to a value greater than the current size pads larger 
+      %     indices with false values.
+      %
+      %     Resizing to 0 is equivalent to calling empty().
+      %
+      %     If the current size is 0, resizing has no effect.
+      %
+      %     See also locator/empty, locator/keep, locator.size
+      %
+      %     IN:
+      %       - `to_size` (uint32)
+      
+      loc_resize( obj.id, to_size );
+    end
+    
     function obj = empty(obj)
       
       %   EMPTY -- Retain 0 rows, but keep categories.
@@ -494,29 +611,57 @@ classdef locator
         return;
       end
       
-      sz = loc_size( id_ );
       cats = loc_getcats( id_ );
-      labs = loc_getlabs( id_ );
-
+      
+      if ( numel(cats) == 0 )
+        addtl_str = 'with 0 categories';
+      else
+        addtl_str = 'with labels:';
+      end
+      
+      max_labs = 5;
+      
+      sz = loc_size( id_ );
       sz_str = sprintf( '%d×1', sz );
-
-      n_cats = numel( cats );
-      n_labs = numel( labs );
-
-      if ( n_cats == 1 )
-        cat_str = 'category';
-      else
-        cat_str = 'categories';
+      
+      fprintf( '  %s %s %s', sz_str, link_str, addtl_str );
+      
+      if ( numel(cats) > 0 )
+        fprintf( '\n' );
       end
-
-      if ( n_labs == 1 )
-        lab_str = 'label';
-      else
-        lab_str = 'labels';
+      
+      cat_strs = arrayfun( @(x) num2str(x), cats, 'un', false );
+      n_digits = cellfun( @numel, cat_strs );
+      
+      max_n_digits = max( n_digits );
+      
+      for i = 1:numel(cats)
+        c_cat = cats(i);
+        labs = loc_incat( id_, c_cat );
+        
+        amt_pad = max_n_digits - numel( cat_strs{i} );
+        cat_space = repmat( ' ', 1, amt_pad );
+        
+        n_labs = numel( labs );
+        n_disp = min( n_labs, max_labs );
+        
+        if ( desktop_exists )
+          fprintf( '\n  %s<strong>%d</strong>:', cat_space, c_cat );
+        else
+          fprintf( '\n  Ts%d:', cat_space, c_cat );
+        end
+        
+        lab_str = strjoin( arrayfun(@num2str, labs(1:n_disp), 'un', false), ', ' );
+        
+        if ( n_disp < n_labs )
+          lab_str = sprintf( '%s ..', lab_str );
+        end
+        
+        lab_str = sprintf( '[%s]', lab_str );
+        
+        fprintf( ' %s', lab_str );
       end
-
-      fprintf( '  %s %s', sz_str, link_str );
-      fprintf( '\n\n  %d %s, %d %s', n_cats, cat_str, n_labs, lab_str );
+      
       fprintf( '\n\n' );
     end
     
@@ -530,6 +675,38 @@ classdef locator
       %       - `s` (struct)
       
       s = loc_struct( obj.id );
+    end
+    
+    function [dbl, cats] = double(obj)
+      
+      %   DOUBLE -- Convert the object to a double matrix.
+      %
+      %     mat = double( obj ) returns an MxN matrix of M label ids by N
+      %     category ids, such that, for a given label i in category j,
+      %     find( mat(:, j) == i ) will equal find( obj, i );
+      %
+      %     See also locator/locator, locator/find
+      %
+      %     OUT:
+      %       - `dbl` (double)
+      %       - `cats` (double)
+      
+      cats = getcats( obj );
+      dbl = double( fullcat(obj, cats) );
+      cats = double( cats );
+    end
+    
+    function [categ, cats] = categorical(obj)
+      
+      %   CATEGORICAL -- Convert the object to a categorical array.
+      %
+      %     See also categorical, locator/double, locator/gather
+      %
+      %     OUT:
+      %       - `cats` (categorical)
+      
+      [categ, cats] = double( obj );
+      categ = categorical( categ );
     end
   end 
   
@@ -561,7 +738,7 @@ classdef locator
       %       - `loc` (locator)
       
       if ( nargin < 3 )
-        index = true;
+        index = true( numel(label), 1 );
       end
       loc = locator();
       addcat( loc, cat );
