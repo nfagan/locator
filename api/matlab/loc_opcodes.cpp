@@ -30,7 +30,8 @@ const util::op_map_t op_map({
     {"n_labels", util::ops::N_LABELS},
     {"resize", util::ops::RESIZE},
     {"combinations", util::ops::COMBINATIONS},
-    {"full_cat", util::ops::FULL_CATEGORY}
+    {"full_cat", util::ops::FULL_CATEGORY},
+    {"get_rand_lab", util::ops::GET_RANDOM_LABEL}
 });
 
 void use_std_string(mxArray *plhs[], const mxArray *prhs[]);

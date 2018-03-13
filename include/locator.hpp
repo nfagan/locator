@@ -9,5 +9,6 @@
 
 #include "../src/bit_array.hpp"
 #include "../src/dynamic_array.hpp"
+#include "../src/multimap.hpp"
 #include "../src/utilities.hpp"
 #include "../src/locator.hpp"

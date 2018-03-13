@@ -1,6 +1,7 @@
 #pragma once
 
 #include "mex.h"
+#include "loc_mex_helpers.hpp"
 #include "locator.hpp"
 #include "loc_opcodes.hpp"
 #include <unordered_map>
@@ -9,7 +10,6 @@
 
 namespace util {
     typedef std::unordered_map<uint32_t, util::locator> storage_t;
-    typedef std::function<void(int, mxArray**, int, const mxArray**)> mex_func_t;
     
     util::locator& get_locator(uint32_t id);
     
@@ -31,6 +31,8 @@ namespace util {
     void rm_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     void collapse_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     void full_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
+    
+    void get_random_label(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     
     void combinations(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     
@@ -55,14 +57,4 @@ namespace util {
     void copy(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     
     void instances(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
-    
-    void assert_nlhs(int actual, int expected, const char* id);
-    void assert_nrhs(int actual, int expected, const char* id);
-    void assert_nrhs(int minimum, int maximum, int actual, const char* id);
-    void assert_scalar(const mxArray *arr, const char* id, const char* msg);
-    void assert_isa(const mxArray *arr, unsigned int class_id, const char* id, const char* msg);
-    
-    util::types::entries_t copy_array_into_entries(const mxArray* src, uint32_t n_copy);
-    void copy_entries_into_array(const types::entries_t& src, mxArray* dest, uint32_t n_copy);
-    mxArray* make_entries_into_array(const types::entries_t& src, uint32_t n_copy);
 }

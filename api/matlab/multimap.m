@@ -1,142 +1,307 @@
 classdef multimap
   
   properties (Access = private)
-    kv;
-    vk;
-  end
-  
-  properties (Constant = true, Access = private)
-    key_t = 'char';
-    value_t = 'uint32';
+    id;
   end
   
   methods (Access = public)    
-    function obj = multimap()
-      obj.kv = containers.Map( 'keytype', obj.key_t, 'valuetype', obj.value_t);
-      obj.vk = containers.Map( 'keytype', obj.value_t, 'valuetype', obj.key_t );
+    function obj = multimap(map_or_id)
+      
+      %   MULTIMAP -- Instantiate a multimap object.
+      %
+      %     obj = multimap() creates an empty multimap object.
+      %
+      %     MULTIMAP objects map string keys to uint32 values, and 
+      %     values to keys. In this way, lookup is constant time in either 
+      %     direction.
+      %
+      %     MULTIMAP objects are meant to be used along side LOCATOR
+      %     objects, in order to efficiently switch between string and
+      %     integer representations of labels and categories.
+      %
+      %     See also multimap/set, multimap/get, locator/locator
+      
+      if ( nargin == 0 || isa(map_or_id, 'containers.Map') )
+        obj.id = loc_multimap_api( loc_multimap_opcodes('create') );
+      end
+      
+      if ( nargin == 1 && isa(map_or_id, 'uint32') )
+        assert( numel(map_or_id) == 1 && any(multimap.instances == map_or_id) ...
+          , 'Invalid map id.' );
+        obj.id = map_or_id;
+        return;
+      end
+      
+      if ( nargin == 1 )
+        assert( isa(map_or_id, 'containers.Map'), ['Input must be a containers.Map' ...
+          , 'object; was "%s".'], class(map_or_id) );
+        kinds = { map_or_id.KeyType, map_or_id.ValueType };
+        assert( sum(strcmp(kinds, 'uint32')) == 1 && sum(strcmp(kinds, 'char')) == 1 ...
+          , ['map object must have a KeyType of char and value type of uint32' ...
+          , ' or vice versa.'] );
+        keys = map_or_id.keys();
+        cellfun( @(x) set(obj, x, map_or_id(x)), keys, 'un', false );
+      end
     end
     
-    function tf = isKey(obj, k)
+    function tf = isvalid(obj)
       
-      %   ISKEY -- True if key `k` exists.
+      %   ISVALID -- True if the multimap has not been destroyed.
       %
-      %     IN:
-      %       - `k` (key_t, value_t)
       %     OUT:
       %       - `tf` (logical)
       
-      tf = obj.kv.isKey( k ) || obj.vk.isKey( k );
+      tf = any( multimap.instances == obj.id );
     end
     
-    function obj = subsasgn(obj, s, value)
+    function tf = contains(obj, kv)
       
-      %   SUBSASGN -- Assign values to the object.
+      %   CONTAINS -- True if the multimap contains the key or value.
+      %
+      %     IN:
+      %       - `kv` (uint32, char)
+      %     OUT:
+      %       - `tf` (logical)
       
-      proceed = true;
-      
-      try
-        switch ( s(1).type )
-          case '()'
-            assert( numel(s) == 1, ...
-              'Nested assignments with ''()'' are illegal.' );
-            subs = s(1).subs;
-            
-            referent = subs{1};
-            
-            if ( isa(referent, obj.key_t) )
-              obj.kv(referent) = value;
-              obj.vk(value) = referent;
-              proceed = false;
-            end
-            
-            if ( proceed && isa(referent, obj.value_t) )
-              obj.vk(referent) = value;
-              obj.kv(value) = referent;
-              proceed = false;
-            end
-            
-            if ( proceed )
-              error( 'Assignment with key of type "%s" is not supported.' ...
-                , class(referent) );
-            end
-          otherwise
-            error( 'Assignment via ''%s'' is not supported', s(1).type );
-        end
-      catch err
-        throwAsCaller( err );
+      if ( isnumeric(kv) )
+        kv = uint32( kv );
       end
+      
+      tf = loc_multimap_api( loc_multimap_opcodes('contains'), obj.id, kv );
     end
     
-    function varargout = subsref(obj, s)
+    function k = keys(obj)
       
-      %   SUBSREF -- Get properties and call methods of the object.
+      %   KEYS -- Get the char keys of the multimap.
+      %
+      %     See also multimap/get, multimap/set, multimap/values
+      %
+      %     OUT:
+      %       - `k` (cell array of strings)
       
-      try
-        subs = s(1).subs;
-        type = s(1).type;
-
-        s(1) = [];
-
-        proceed = true;
-
-        switch ( type )
-          case '.'
-            %   if the ref is the name of a multimap method, call the method
-            %   on the Container object (with whatever other inputs are
-            %   passed), and return
-            if ( proceed && any(strcmp(methods(obj), subs)) )
-              func = eval( sprintf('@%s', subs) );
-              %   if the ref is to a method, but is called without (), an
-              %   error is thrown. E.g., Container.eq -> error ...
-              if ( numel(s) == 0 )
-                s(1).subs = {};
-              end
-              inputs = [ {obj} {s(:).subs{:}} ];
-              %   assign `out` to the output of func() and return
-              [varargout{1:nargout()}] = func( inputs{:} );
-              return; %   note -- in this case, we do not proceed
-            end
-            if ( proceed )
-              error( 'No properties or methods matched the name ''%s''', subs );
-            end
-          case '()'
-            nsubs = numel( subs );
-            %   ensure we're not doing x()
-            assert( nsubs ~= 0, ['Attempted to reference a variable' ...
-              , ' as if it were a function.'] );
-            %   ensure we're not doing x(1, 2, 3)
-            assert( nsubs == 1, ['Multidimensional indexing is not' ...
-              , ' supported.'] );
-            %   use a numeric index
-            if ( isa(subs{1}, obj.key_t) )
-              out = obj.kv(subs{1});
-              proceed = false;
-            end
-            if ( proceed && isa(subs{1}, obj.value_t) )
-              out = obj.vk(subs{1});
-              proceed = false;
-            end
-            %   otherwise, we've attempted to pass an illegal type to the
-            %   index
-            if ( proceed )
-              error( '() Referencing with values of class ''%s'' is not supported.', ...
-                class(subs{1}) );
-            end
-          otherwise
-            error( 'Referencing with ''%s'' is not supported', type );
-        end
-
-        if ( isempty(s) )
-          varargout{1} = out;
-          return;
-        end
-        %   continue referencing if this is a nested reference, e.g.
-        %   obj.labels.labels
-        [varargout{1:nargout()}] = subsref( out, s );
-      catch err
-        throwAsCaller( err );
+      k = loc_multimap_api( loc_multimap_opcodes('keys'), obj.id );      
+    end
+    
+    function v = values(obj)
+      
+      %   VALUES -- Get the uint32 values of the multimap.
+      %
+      %     See also multimap/get, multimap/set, multimap/keys
+      %
+      %     OUT:
+      %       - `v` (uint32)
+      
+      v = loc_multimap_api( loc_multimap_opcodes('values'), obj.id );  
+    end
+    
+    function id = getid(obj)
+      
+      %   GETID -- Get the id of the object.
+      %
+      %     See also multimap/multimap
+      %
+      %     OUT:
+      %       - `id` (uint32)
+      
+      id = obj.id;      
+    end
+    
+    function obj = subsasgn(obj, s, values)
+      
+      %   SUBSASGN -- Assign value to key.
+      %
+      %     obj('example') = 1 binds 1 to 'example'.
+      %     obj(1) = 'example' does the same.
+      %
+      %     Assignment in this way is slower than calling `set()` directly.
+      %
+      %     See also multimap/subsref, multimap/set, multimap/get
+      
+      assert( numel(s) == 1 && strcmp(s.type, '()') && numel(s.subs) == 1 ...
+        , 'Invalid assignment signature.' );
+      
+      set( obj, s.subs{1}, values );
+    end
+    
+    function out = subsref(obj, s)
+      
+      %   SUBSREF -- Retrieve value associated with key.
+      %
+      %     out = obj('example') gets the value associated with 'example'.
+      %     out = obj(1) gets the value associated with 1.
+      %
+      %     out = obj({'example', 'example2'}) returns a 1x2 array of
+      %     integer values associated with string keys.
+      %
+      %     out = obj([1, 2]) returns a 1x2 cell array of string values
+      %     associated with integer keys.
+      %
+      %     Reference in this way is slower than calling `get()` directly.
+      %
+      %     See also multimap/subsref, multimap/set, multimap/get
+      
+      assert( numel(s) == 1 && strcmp(s.type, '()') && numel(s.subs) == 1 ...
+        , 'Invalid reference signature.' );
+      
+      referent = s.subs{1};
+      
+      if ( isnumeric(referent) && numel(referent) > 1 )
+        out = arrayfun( @(x) get(obj, x), s.subs{1}, 'un', false );
+        return;
       end
+      
+      if ( iscellstr(referent) )
+        out = cellfun( @(x) get(obj, x), s.subs{1} );
+        return;
+      end
+      
+      out = get( obj, referent );
+    end
+    
+    function obj = set(obj, key, value)
+      
+      %   SET -- Assign value to key, and key to value.
+      %
+      %     set( obj, 'example', uint32(0) ) associates 'example' with 0.
+      %
+      %     See also multimap/multimap, multimap/get
+      %
+      %     IN:
+      %       - `key` (uint32, char)
+      %       - `value` (uint32, char)
+      
+      if ( isnumeric(value) )
+        value = uint32( value );
+      end
+      
+      if ( isnumeric(key) )
+        key = uint32( key );
+      end
+      
+      loc_multimap_api( loc_multimap_opcodes('insert'), obj.id, key, value );
+    end
+    
+    function value = get(obj, key)
+      
+      %   GET -- Retrieve value.
+      %
+      %     See also multimap/set
+      %
+      %     IN:
+      %       - `key` (uint32, char)
+      %     OUT:
+      %       - `value` (uint32, char)
+      
+      if ( isnumeric(key) )
+        key = uint32( key );
+      end
+      
+      opcode = loc_multimap_opcodes( 'at' );
+      value = loc_multimap_api( opcode, obj.id, key );
+    end
+    
+    function destroy(obj)
+      
+      %   DESTROY -- Delete instance and free memory.
+      %
+      %     See also multimap/destroyall, multimap/multimap
+      
+      opcode = loc_multimap_opcodes( 'destroy' );
+      loc_multimap_api( opcode, obj.id );
+    end
+    
+    function new_map = copy(obj)
+      
+      %   COPY -- Create new instance from current instance.
+      %
+      %     OUT:
+      %       - `new_map` (multimap)
+    
+      opcode = loc_multimap_opcodes( 'copy' );
+      
+      new_map = multimap( loc_multimap_api(opcode, obj.id) );
+    end
+    
+    function disp(obj)
+      
+      %   DISP -- Pretty-print the object's contents.
+      %
+      %     See also multimap/multimap, multimap/destroy
+      
+      desktop_exists = usejava( 'desktop' );
+      
+      if ( desktop_exists )
+        link_str = sprintf( '<a href="matlab:helpPopup %s">%s</a>' ...
+          , class(obj), class(obj) );
+      else
+        link_str = class( obj );
+      end
+      
+      if ( ~isvalid(obj) )
+        fprintf( 'Handle to deleted %s instance.\n\n', link_str );
+        return;
+      end
+      
+      k = keys( obj );
+      sz = numel( k );
+      
+      sz_str = sprintf( '%d×1', sz );
+      
+      if ( sz == 0 )
+        addtl_str = '';
+      else
+        addtl_str = 'with keys: ';
+      end
+      
+      fprintf( '  %s %s %s', sz_str, link_str, addtl_str );
+      
+      if ( sz > 0 )
+        fprintf( '\n' );
+      end
+      
+      n_disp = min( numel(k), 5 );
+      
+      for i = 1:n_disp
+        if ( desktop_exists )
+          key_str = sprintf( '<strong>%s</strong>', k{i} );
+        else
+          key_str = k{i};
+        end
+        
+        fprintf( '\n    %s: %d', key_str, get(obj, k{i}) );
+      end
+      
+      if ( n_disp < numel(k) )
+        fprintf( '\n    .. ' );
+      end
+      
+      fprintf( '\n\n' );
     end
   end
   
+  methods (Static = true)
+    
+    function out = instances()
+      
+      %   INSTANCES -- Get ids of all active multimaps.
+      %
+      %     See also multimap/multimap
+      %
+      %     OUT:
+      %       - `ids` (uint32)
+      
+      opcode = loc_multimap_opcodes( 'instances' );
+      out = loc_multimap_api( opcode );
+    end
+    
+    function destroyall()
+      
+      %   DESTROYALL -- Delete all multimaps.
+      %
+      %     See also multimap/destroy
+      
+      opcode = loc_multimap_opcodes( 'destroy' );
+      loc_multimap_api( opcode );
+    end
+  end
 end

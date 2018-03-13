@@ -296,6 +296,16 @@ classdef locator
       tf = loc_haslab( obj.id, label );
     end
     
+    function lab = randlab(obj)
+      
+      %   RANDLAB -- Get a random label that does not already exist.
+      %
+      %     OUT:
+      %       - `lab` (uint32)
+      
+      lab = loc_randlab( obj.id );     
+    end
+    
     function cats = whichcat(obj, labels)
       
       %   WHICHCAT -- Get the category in which a label resides.

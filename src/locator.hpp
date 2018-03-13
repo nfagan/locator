@@ -97,6 +97,8 @@ public:
     
     types::numeric_indices_t find(const types::entries_t& labels, uint32_t index_offset = 0u);
     types::numeric_indices_t find(const uint32_t label, uint32_t index_offset = 0u) const;
+    
+    uint32_t get_random_label_id() const;
 private:
     types::entries_t m_labels;
     types::entries_t m_categories;
@@ -114,7 +116,6 @@ private:
     uint32_t find_label(uint32_t label) const;
     
     uint32_t get_random_category_id() const;
-    uint32_t get_random_label_id() const;
     
     void unchecked_add_category(uint32_t category);
     void unchecked_set_category(uint32_t category, uint32_t label, bool is_present, bool create_tmp, const util::bit_array& index);

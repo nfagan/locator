@@ -53,6 +53,7 @@ void util::init_locator_functions()
     globals::funcs[ops::RESIZE] =                   &util::resize;
     globals::funcs[ops::COMBINATIONS] =             &util::combinations;
     globals::funcs[ops::FULL_CATEGORY] =            &util::full_category;
+    globals::funcs[ops::GET_RANDOM_LABEL] =         &util::get_random_label;
     
     globals::INITIALIZED = true;
     
@@ -85,40 +86,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 //  implementation
 //
 
-void util::copy_entries_into_array(const util::types::entries_t& src, mxArray* dest, uint32_t n_copy)
-{
-    uint32_t* src_ptr = src.unsafe_get_pointer();
-    uint32_t* dest_ptr = (uint32_t*) mxGetData(dest);
-    
-    std::memcpy(dest_ptr, src_ptr, n_copy * sizeof(uint32_t));
-}
-
-util::types::entries_t util::copy_array_into_entries(const mxArray* src, uint32_t n_copy)
-{
-    util::types::entries_t result(n_copy);
-    
-    uint32_t* dest_ptr = result.unsafe_get_pointer();
-    uint32_t* src_ptr = (uint32_t*) mxGetData(src);
-    
-    std::memcpy(dest_ptr, src_ptr, n_copy * sizeof(uint32_t));
-    
-    return result;
-}
-
-mxArray* util::make_entries_into_array(const types::entries_t& src, uint32_t n_copy)
-{
-    mxArray* out = mxCreateUninitNumericMatrix(n_copy, 1, mxUINT32_CLASS, mxREAL);
-    
-    if (n_copy == 0)
-    {
-        return out;
-    }
-    
-    util::copy_entries_into_array(src, out, n_copy);
-    
-    return out;
-}
-
 util::locator& util::get_locator(uint32_t id)
 {
     auto it = util::globals::locators.find(id);
@@ -131,45 +98,22 @@ util::locator& util::get_locator(uint32_t id)
     return it->second;
 }
 
-void util::assert_scalar(const mxArray *arr, const char* id, const char* msg)
+void util::get_random_label(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-    if (!mxIsScalar(arr))
-    {
-        mexErrMsgIdAndTxt(id, msg);
-    }
-}
-
-void util::assert_nrhs(int actual, int expected, const char* id)
-{
-    if (actual != expected)
-    {
-        mexErrMsgIdAndTxt(id, "Wrong number of inputs.");
-    }
-}
-
-void util::assert_nrhs(int minimum, int maximum, int actual, const char* id)
-{
-    if (actual < minimum || actual > maximum)
-    {
-        mexErrMsgIdAndTxt(id, "Wrong number of inputs.");
-    }
-}
-
-void util::assert_nlhs(int actual, int expected, const char* id)
-{
-    if (actual != expected)
-    {
-        mexErrMsgIdAndTxt(id, "Wrong number of outputs.");
-    }
-}
-
-void util::assert_isa(const mxArray *arr, unsigned int class_id, const char* id, const char* msg)
-{
-    if (mxGetClassID(arr) != class_id)
-    {
-        mexErrMsgIdAndTxt(id, msg);
-        return;
-    }
+    using namespace util;
+    
+    assert_nrhs(nrhs, 2, "locator:get_random_label");
+    assert_nlhs(nlhs, 1, "locator:get_random_label");
+    
+    assert_scalar(prhs[1], "locator:resize", "Id must be scalar.");
+    
+    const locator& c_locator = get_locator(mxGetScalar(prhs[1]));
+    
+    plhs[0] = mxCreateUninitNumericMatrix(1, 1, mxUINT32_CLASS, mxREAL);
+    
+    uint32_t* id_arr = (uint32_t*) mxGetData(plhs[0]);
+    
+    id_arr[0] = c_locator.get_random_label_id();  
 }
 
 void util::combinations(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
@@ -177,7 +121,7 @@ void util::combinations(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs
     using namespace util;
     
     assert_nrhs(nrhs, 3, "locator:combinations");
-    assert_nlhs(nlhs, 1, "locator:resize");
+    assert_nlhs(nlhs, 1, "locator:combinations");
     
     assert_scalar(prhs[1], "locator:resize", "Id must be scalar.");
     
