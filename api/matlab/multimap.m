@@ -145,16 +145,19 @@ classdef multimap
       
       referent = s.subs{1};
       
+      %   obj([1, 2, 3])
       if ( isnumeric(referent) && numel(referent) > 1 )
         out = arrayfun( @(x) get(obj, x), s.subs{1}, 'un', false );
         return;
       end
       
+      %   obj({'eg1', 'eg2'})
       if ( iscellstr(referent) )
         out = cellfun( @(x) get(obj, x), s.subs{1} );
         return;
       end
       
+      %   obj('eg') or obj(1)
       out = get( obj, referent );
     end
     
@@ -220,6 +223,31 @@ classdef multimap
       opcode = loc_multimap_opcodes( 'copy' );
       
       new_map = multimap( loc_multimap_api(opcode, obj.id) );
+    end
+    
+    function out = map(obj, flip)
+      
+      %   MAP -- Convert to a containers.Map instance.
+      %
+      %     See also multimap/multimap
+      %
+      %     IN:
+      %       - `flip` (logical) |OPTIONAL| -- If true, output map is
+      %       uint32 -> string. If false, output map is string -> uint32.
+      %       Default is false.
+      %     OUT:
+      %       - `out` (containers.Map)
+      
+      if ( nargin < 2 )
+        flip = false;
+      end
+      
+      if ( flip )
+        out = containers.Map( values(obj), keys(obj) );
+        return;
+      end
+      
+      out = containers.Map( keys(obj), values(obj) );      
     end
     
     function disp(obj)

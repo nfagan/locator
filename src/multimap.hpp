@@ -111,6 +111,19 @@ K util::multimap<K, V>::at(V key) const
 template<typename K, typename V>
 void util::multimap<K, V>::insert(K key, V value)
 {
+    auto ita = m_kv.find(key);
+    auto itb = m_vk.find(value);
+    
+    if (ita != m_kv.end())
+    {
+        m_vk.erase(ita->second);
+    }
+    
+    if (itb != m_vk.end())
+    {
+        m_kv.erase(itb->second);
+    }
+    
     m_kv[key] = value;
     m_vk[value] = key;
 }
@@ -145,9 +158,9 @@ std::vector<V> util::multimap<K, V>::values() const
 {
     std::vector<V> res;
     
-    for (const auto& it : m_vk)
+    for (const auto& it : m_kv)
     {
-        res.push_back(it.first);
+        res.push_back(it.second);
     }
     
     return res;

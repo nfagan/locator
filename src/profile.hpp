@@ -10,6 +10,7 @@
 #include <functional>
 #include <string>
 #include <chrono>
+#include <iostream>
 
 namespace util {
     namespace profile {
@@ -21,3 +22,15 @@ namespace util {
         double ellapsed_time_s(time_point_t t1, time_point_t t2);
     }
 }
+
+#define LOC_PROFILE_BEGIN() \
+    util::profile::time_point_t t1, t2;
+
+#define LOC_PROFILE_START() \
+    t1 = util::profile::clock_t::now();
+
+#define LOC_PROFILE_STOP() \
+    t2 = util::profile::clock_t::now();
+
+#define LOC_PROFILE_SUMMARY() \
+    std::cout << (util::profile::ellapsed_time_s(t1, t2) * 1000.0) << " (ms)" << std::endl;
