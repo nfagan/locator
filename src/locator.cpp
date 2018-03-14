@@ -23,7 +23,7 @@ uint32_t util::get_random_id(std::function<bool (const util::locator*, uint32_t)
     uint32_t id = uniform_dist(random_engine);
     
     //  shouldn't happen (tm)
-    if (loc->size() == int_max)
+    if (loc->n_labels() == int_max)
     {
         return 0u;
     }
