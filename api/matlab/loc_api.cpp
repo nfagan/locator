@@ -56,6 +56,7 @@ void util::init_locator_functions()
     globals::funcs[ops::GET_RANDOM_LABEL] =         &util::get_random_label;
     globals::funcs[ops::FILL_CATEGORY] =            &util::fill_category;
     globals::funcs[ops::FIND_ALL] =                 &util::find_all;
+    globals::funcs[ops::IS_FULL_CATEGORY] =         &util::is_full_category;
     
     globals::INITIALIZED = true;
     
@@ -98,6 +99,42 @@ util::locator& util::get_locator(uint32_t id)
     }
     
     return it->second;
+}
+
+void util::is_full_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+{
+    using namespace util;
+    
+    assert_nrhs(nrhs, 3, "locator:is_full_category");
+    assert_nlhs(nlhs, 1, "locator:is_full_category");
+    
+    assert_scalar(prhs[1], "locator:fill_category", "Id must be scalar.");
+    
+    locator& c_locator = get_locator(mxGetScalar(prhs[1]));
+    
+    uint32_t* in_cats = (uint32_t*) mxGetData(prhs[2]);
+    uint32_t n_cats = mxGetNumberOfElements(prhs[2]);
+    
+    mxArray* out_arr = mxCreateLogicalMatrix(n_cats, 1);
+    bool* out_data = (bool*) mxGetLogicals(out_arr);
+    
+    bool exists;
+    
+    for (uint32_t i = 0; i < n_cats; i++)
+    {
+        bool is_full = c_locator.is_full_category(in_cats[i], &exists);
+        
+        if (!exists)
+        {
+            mxDestroyArray(out_arr);
+            mexErrMsgIdAndTxt("locator:fill_category", "Category does not exist.");
+            return;
+        }
+        
+        out_data[i] = is_full;
+    }
+    
+    plhs[0] = out_arr;    
 }
 
 void util::fill_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
@@ -1073,11 +1110,6 @@ void util::set_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs
         return;
     }
     
-    if (index.sum() != n_els)
-    {
-        std::cout << "ASSIGN FAILED" << std::endl;
-    }
-    
     uint32_t set_cat_result = c_locator.set_category(category, label, index);
     
     if (set_cat_result == util::locator_status::OK)
@@ -1142,9 +1174,4 @@ void util::destroy(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     uint32_t id = (uint32_t) mxGetScalar(prhs[1]);
     
     size_t n_erased = util::globals::locators.erase(id);
-    
-    if (n_erased != 1)
-    {
-        mexErrMsgIdAndTxt("locator:destroy", "Unrecognized id.");
-    }
 }

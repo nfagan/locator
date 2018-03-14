@@ -416,12 +416,11 @@ void util::destroy(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         return;
     }
     
-    uint32_t id = (uint32_t) mxGetScalar(prhs[1]);
+    uint32_t* ids = (uint32_t*) mxGetData(prhs[1]);
+    uint32_t n_ids = mxGetNumberOfElements(prhs[1]);
     
-    size_t n_erased = util::globals::multimaps.erase(id);
-    
-    if (n_erased != 1)
+    for (uint32_t i = 0; i < n_ids; i++)
     {
-        mexErrMsgIdAndTxt("multimap:destroy", "Unrecognized id.");
+        util::globals::multimaps.erase(ids[i]);
     }
 }

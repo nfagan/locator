@@ -109,6 +109,25 @@ classdef locator
       tf = loc_isempty( obj.id );
     end
     
+    function tf = isfullcat(obj, categories)
+     
+      %   ISFULLCAT -- True if a category has a label for each row.
+      %
+      %     If a locator is resized to a size greater than its current
+      %     size, the indices for the additional rows are padded with
+      %     `false`. In this way, for a given category, there are fewer
+      %     labels than rows, and the category is not 'full'.
+      %
+      %     See also locator/resize, locator/combs
+      %
+      %     IN:
+      %       - `categories` (uint32)
+      %     OUT:
+      %       - `tf` (logical)
+      
+      tf = loc_api( loc_opcodes('is_full_cat'), obj.id, uint32(categories) );      
+    end
+    
     function tf = trueat(obj, indices, rows)
       
       %   TRUEAT -- Assign true at indices.
@@ -451,6 +470,51 @@ classdef locator
       %       - `cats` (uint32) -- Category(ies) to collapse.
         
       loc_collapsecat( obj.id, cats );
+    end
+    
+    function [full_cat, lab_map] = makelabs(obj, strs, lab_map)
+      
+      %   MAKELABS -- Make labels from cell array of strings.
+      %
+      %     full_cat = makecat( obj, {'hi', 'hello'} ); returns [1, 2]
+      %
+      %     [ ..., lab_map ] = makecat( ... ) also returns `lab_map`, a 
+      %     multimap binding each unique char label to each unique integer 
+      %     label.
+      %
+      %     ... = makecat( ..., lab_map ) puts the resulting int-char 
+      %     label pairs into the multimap `lab_map`, instead of creating a 
+      %     new multimap.
+      %
+      %     See also locator/initcat
+      %
+      %     IN:
+      %       - `strs` (cell array of strings)
+      %       - `lab_map` (multimap) |OPTIONAL|
+      %     OUT:
+      %       - `full_cat` (uint32)
+      %       - `lab_map` (multimap)
+      
+      if ( nargin < 3 )
+        lab_map = multimap();
+      else
+        assert( isa(lab_map, 'multimap'), 'Label map must be multimap.' );
+      end
+      
+      assert( iscellstr(strs), 'Labels must be cell array of strings.' );
+      
+      strs = strs(:);      
+      unqs = unique( strs );
+      n = numel( unqs );
+      full_cat = zeros( numel(unqs), 1, 'uint32' );
+      
+      for i = 1:n
+        lab_int = randlab( obj );
+        lab_str = unqs{i};
+        ind = strcmp( strs, lab_str );
+        full_cat(ind) = lab_int;
+        set( lab_map, lab_str, lab_int );
+      end
     end
     
     function cats = getcats(obj)
@@ -804,6 +868,25 @@ classdef locator
       %     See also locator/locator, loc_create, locator/instances
       
       loc_destroy();
+    end
+    
+    function destroysome(ids)
+      
+      %   DESTROYSOME -- Destroy locators associated with ids.
+      %
+      %     See also locator/destroyall
+      
+      loc_destroy( ids );
+    end
+    
+    function destroyexcept(keep_ids)
+      
+      %   DESTROYEXCEPT -- Destroy locators except those specified.
+      %
+      %     IN:
+      %       - `keep_ids` (uint32)
+      
+      locator.destroysome( setdiff(locator.instances(), uint32(keep_ids)) );      
     end
   end
 end

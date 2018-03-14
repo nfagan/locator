@@ -915,6 +915,33 @@ bool util::locator::has_category(uint32_t category) const
     return m_by_category.find(category) != m_by_category.end();
 }
 
+bool util::locator::is_full_category(uint32_t category, bool *exists) const
+{
+    auto it = m_by_category.find(category);
+    
+    if (it == m_by_category.end())
+    {
+        *exists = false;
+        return false;
+    }
+    
+    *exists = true;
+    
+    const util::types::entries_t& labs = it->second;
+    
+    uint32_t n_labs = labs.tail();
+    uint32_t* labs_ptr = labs.unsafe_get_pointer();
+    uint32_t sum = 0;
+    uint32_t c_size = size();
+    
+    for (uint32_t i = 0; i < n_labs; i++)
+    {
+        sum += m_indices.at(labs_ptr[i]).sum();
+    }
+    
+    return sum == c_size;
+}
+
 uint32_t util::locator::find_label(uint32_t label, bool *was_found) const
 {
     uint32_t idx;

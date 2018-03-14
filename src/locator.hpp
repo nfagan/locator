@@ -76,6 +76,7 @@ public:
     
     bool has_label(uint32_t label) const;
     bool has_category(uint32_t category) const;
+    bool is_full_category(uint32_t category, bool* exists) const;
     
     const types::entries_t& get_labels() const;
     const types::entries_t& get_categories() const;

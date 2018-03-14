@@ -383,5 +383,25 @@ classdef multimap
       opcode = loc_multimap_opcodes( 'destroy' );
       loc_multimap_api( opcode );
     end
+    
+    function destroysome(ids)
+      
+      %   DESTROYSOME -- Destroy locators associated with ids.
+      %
+      %     See also locator/destroyall
+      
+      opcode = loc_multimap_opcodes( 'destroy' );
+      loc_multimap_api( opcode, uint32(ids) );
+    end
+    
+    function destroyexcept(keep_ids)
+      
+      %   DESTROYEXCEPT -- Destroy locators except those specified.
+      %
+      %     IN:
+      %       - `keep_ids` (uint32)
+      
+      multimap.destroysome( setdiff(multimap.instances(), uint32(keep_ids)) );      
+    end
   end
 end

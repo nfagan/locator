@@ -33,6 +33,8 @@ namespace util {
     void full_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     void fill_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     
+    void is_full_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
+    
     void get_random_label(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     
     void combinations(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
