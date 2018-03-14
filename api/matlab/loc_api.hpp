@@ -25,12 +25,13 @@ namespace util {
     void n_labels(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     
     void add_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
-    void set_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);    
+    void set_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     void set_category_mult(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     void require_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     void rm_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     void collapse_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     void full_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
+    void fill_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     
     void get_random_label(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     
@@ -53,6 +54,7 @@ namespace util {
     void equals(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     
     void find(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
+    void find_all(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     
     void copy(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     

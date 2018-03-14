@@ -54,6 +54,8 @@ void util::init_locator_functions()
     globals::funcs[ops::COMBINATIONS] =             &util::combinations;
     globals::funcs[ops::FULL_CATEGORY] =            &util::full_category;
     globals::funcs[ops::GET_RANDOM_LABEL] =         &util::get_random_label;
+    globals::funcs[ops::FILL_CATEGORY] =            &util::fill_category;
+    globals::funcs[ops::FIND_ALL] =                 &util::find_all;
     
     globals::INITIALIZED = true;
     
@@ -98,6 +100,44 @@ util::locator& util::get_locator(uint32_t id)
     return it->second;
 }
 
+void util::fill_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+{
+    using namespace util;
+    
+    assert_nrhs(nrhs, 4, "locator:fill_category");
+    assert_nlhs(nlhs, 0, "locator:fill_category");
+    
+    assert_scalar(prhs[1], "locator:fill_category", "Id must be scalar.");
+    assert_scalar(prhs[2], "locator:fill_category", "Category must be scalar.");
+    assert_scalar(prhs[3], "locator:fill_category", "Label must be scalar.");
+    
+    locator& c_locator = get_locator(mxGetScalar(prhs[1]));
+    
+    uint32_t cat = mxGetScalar(prhs[2]);
+    uint32_t lab = mxGetScalar(prhs[3]);
+    
+    uint32_t res = c_locator.set_category(cat, lab, bit_array(c_locator.size(), true));
+    
+    if (res == locator_status::OK)
+    {
+        return;
+    }
+    
+    if (res == locator_status::CATEGORY_DOES_NOT_EXIST)
+    {
+        mexErrMsgIdAndTxt("locator:fill_category", "Category does not exist.");
+        return;
+    }
+    
+    if (res == locator_status::LABEL_EXISTS_IN_OTHER_CATEGORY)
+    {
+        mexErrMsgIdAndTxt("locator:fill_category", "Label already exists in another category.");
+        return;
+    }
+    
+    mexErrMsgIdAndTxt("locator:fill_category", "Unexpected error.");
+}
+
 void util::get_random_label(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
     using namespace util;
@@ -116,6 +156,68 @@ void util::get_random_label(int nlhs, mxArray *plhs[], int nrhs, const mxArray *
     id_arr[0] = c_locator.get_random_label_id();  
 }
 
+void util::find_all(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+{
+    using namespace util;
+    
+    assert_nrhs(nrhs, 3, "locator:find_all");
+    assert_nlhs(nlhs, 2, "locator:find_all");
+    
+    assert_scalar(prhs[1], "locator:find_all", "Id must be scalar.");
+    
+    locator& c_locator = get_locator(mxGetScalar(prhs[1]));
+    
+    const mxArray* in_cats = prhs[2];
+    uint32_t n_in_cats = mxGetNumberOfElements(in_cats);
+    
+    const types::entries_t in_cats_entries = copy_array_into_entries(in_cats, n_in_cats);
+    
+    bool exists;
+    
+    const types::entries_t combs = c_locator.combinations(in_cats_entries, &exists);
+    const uint32_t n_result = combs.tail();
+    
+    if (!exists)
+    {
+        mexErrMsgIdAndTxt("locator:find_all", "Category does not exist.");
+        return;
+    }
+    
+    if (n_result == 0)
+    {
+        plhs[0] = mxCreateCellMatrix(1, 0);
+        plhs[1] = mxCreateUninitNumericMatrix(0, n_in_cats, mxUINT32_CLASS, mxREAL);
+        return;
+    }
+    
+    uint32_t n_indices = n_result / n_in_cats;
+    
+    mxArray* all_indices = mxCreateCellMatrix(1, n_indices);
+    
+    uint32_t* all_combs_ptr = combs.unsafe_get_pointer();
+    
+    types::entries_t labs_to_find(n_in_cats);
+    uint32_t* labs_to_find_ptr = labs_to_find.unsafe_get_pointer();
+    
+    uint32_t cell_idx = 0;
+    
+    for (uint32_t i = 0; i < n_result; i += n_in_cats)
+    {
+        std::memcpy(labs_to_find_ptr, all_combs_ptr + i, n_in_cats * sizeof(uint32_t));
+                
+        types::entries_t one_find_result = c_locator.find(labs_to_find, 1u);
+        
+        mxArray* one_find_arr = make_entries_into_array(one_find_result, one_find_result.tail());
+        
+        mxSetCell(all_indices, cell_idx, one_find_arr);
+        
+        cell_idx++;
+    }
+    
+    plhs[0] = all_indices;
+    plhs[1] = make_entries_into_array(combs, n_result);
+}
+
 void util::combinations(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
     using namespace util;
@@ -123,7 +225,7 @@ void util::combinations(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs
     assert_nrhs(nrhs, 3, "locator:combinations");
     assert_nlhs(nlhs, 1, "locator:combinations");
     
-    assert_scalar(prhs[1], "locator:resize", "Id must be scalar.");
+    assert_scalar(prhs[1], "locator:combinations", "Id must be scalar.");
     
     const locator& c_locator = get_locator(mxGetScalar(prhs[1]));
     
@@ -139,7 +241,7 @@ void util::combinations(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs
     
     if (!exists)
     {
-        mexErrMsgIdAndTxt("locator:collapse_category", "Category does not exist.");
+        mexErrMsgIdAndTxt("locator:combinations", "Category does not exist.");
         return;
     }
     
@@ -148,8 +250,6 @@ void util::combinations(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs
         plhs[0] = mxCreateUninitNumericMatrix(0, n_in_cats, mxUINT32_CLASS, mxREAL);
         return;
     }
-    
-    uint32_t n_rows = n_result / n_in_cats;
     
     plhs[0] = make_entries_into_array(result, n_result);
 }
@@ -174,7 +274,7 @@ void util::full_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prh
     {
         if (!c_locator.has_category(cats[i]))
         {
-            mexErrMsgIdAndTxt("locator:collapse_category", "Category does not exist.");
+            mexErrMsgIdAndTxt("locator:full_category", "Category does not exist.");
         }
     }
     

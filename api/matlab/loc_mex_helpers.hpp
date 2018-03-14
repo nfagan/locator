@@ -11,6 +11,7 @@ namespace util {
     std::string get_string(const mxArray* in_arr, bool* success);
     
     void assert_nlhs(int actual, int expected, const char* id);
+    void assert_nlhs(int minimum, int maximum, int actual, const char* id);
     void assert_nrhs(int actual, int expected, const char* id);
     void assert_nrhs(int minimum, int maximum, int actual, const char* id);
     void assert_scalar(const mxArray *arr, const char* id, const char* msg);

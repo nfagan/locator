@@ -237,7 +237,7 @@ util::types::entries_t util::locator::full_category(uint32_t category, bool *exi
     util::types::entries_t result(sz);
     uint32_t* result_ptr = result.unsafe_get_pointer();
     
-    std::memset(result_ptr, 0u, sz * sizeof(uint32_t));
+    std::memset(result_ptr, get_random_label_id(), sz * sizeof(uint32_t));
     
     for (uint32_t i = 0; i < n_in_cat; i++)
     {

@@ -97,6 +97,14 @@ void util::assert_nlhs(int actual, int expected, const char* id)
     }
 }
 
+void util::assert_nlhs(int minimum, int maximum, int actual, const char* id)
+{
+    if (actual < minimum || actual > maximum)
+    {
+        mexErrMsgIdAndTxt(id, "Wrong number of outputs.");
+    }
+}
+
 void util::assert_isa(const mxArray *arr, unsigned int class_id, const char* id, const char* msg)
 {
     if (mxGetClassID(arr) != class_id)

@@ -16,11 +16,60 @@ if ( isa(loc_convertible, 'SparseLabels') )
 end
 
 if ( isa(loc_convertible, 'struct') )
-  varargout{1} = from_struct( loc_convertible );
-  return;
+  fields = fieldnames( loc_convertible );
+  if ( numel(fields) > 0 && iscellstr(loc_convertible.(fields{1})) )
+    [loc, out_cats, out_labs] = from_struct_cell( loc_convertible );
+    varargout{1} = loc;
+    varargout{2} = out_cats;
+    varargout{3} = out_labs;
+    return;
+  else
+    varargout{1} = from_struct( loc_convertible );
+    return;
+  end
 end
 
 error( 'Cannot convert to locator from object of type "%s".', class(loc_convertible) );
+
+end
+
+function [loc, out_cats, out_labs] = from_struct_cell(loc_convertible)
+
+fields = fieldnames( loc_convertible );
+
+for i = 1:numel(fields)
+  curr = loc_convertible.(fields{i});
+  assert( iscellstr(curr), 'If a field of struct is cell, all must be cell array of strings.' );
+  if ( i > 1 )
+    assert( numel(loc_convertible.(fields{i-1})) == numel(curr) ...
+      , 'All fields must have the same number of elements.' );
+  end
+end
+
+loc = locator();
+out_cats = multimap();
+out_labs = multimap();
+
+lab_stp = 1;
+
+for i = 1:numel(fields)
+  curr = loc_convertible.(fields{i});
+  unqs = unique( curr );
+
+  initcat( loc, i, randlab(loc), size(curr, 1) );
+
+  set( out_cats, fields{i}, i );
+
+  for j = 1:numel(unqs)
+    ind = strcmp( curr, unqs{j} );
+
+    setcat( loc, i, lab_stp, ind );
+    
+    set( out_labs, unqs{j}, lab_stp );
+
+    lab_stp = lab_stp + 1;
+  end
+end
 
 end
 

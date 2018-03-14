@@ -11,7 +11,7 @@ function cmbs = loc_combs(loc, categories)
 %       - `cmbs` (uint32) -- Present combinations.
 
 if ( numel(categories) == 1 )
-  cmbs = loc_incat( loc, categories );
+  cmbs = loc_incat( loc, categories )';
   return;
 end
 

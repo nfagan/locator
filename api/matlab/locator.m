@@ -158,11 +158,14 @@ classdef locator
       %     indices `I`, where each index in I identifies a unique
       %     combination of labels in categories 1 and 3.
       %
+      %     I = findall( obj ) finds all possible combinations of labels in
+      %     all categories.
+      %
       %     [I, C] = ... also returns `C`, an MxN matrix of M categories by
       %     N combinations, where each column `i` of C identifies the
       %     labels used to generate the i-th index of I.
       %
-      %     See also locator/combs
+      %     See also locator/combs, locator/find
       %
       %     IN:
       %       - `categories` (uint32)
@@ -170,11 +173,11 @@ classdef locator
       %       - `I` (cell array of uint32)
       %       - `C` (uint32)
       
-      C = combs( obj, categories );      
-      I = cell( 1, size(C, 2) );
-      for i = 1:numel(I)
-        I{i} = find( obj, C(:, i) );
+      if ( nargin < 2 )
+        categories = getcats( obj );
       end
+      
+      [I, C] = loc_findall( obj.id, categories );
     end
     
     function cmbs = combs(obj, categories)
@@ -192,6 +195,10 @@ classdef locator
       %       - `categories` (uint32)
       %     OUT:
       %       - `cmbs` (uint32)
+
+      if ( nargin < 2 )
+        categories = getcats( obj );
+      end
       
       cmbs = loc_combs( obj.id, categories );      
     end
@@ -407,6 +414,19 @@ classdef locator
         rmcat( obj, cat );
         throw( err );
       end
+    end
+    
+    function obj = fillcat(obj, cat, lab)
+      
+      %   FILLCAT -- Assign full contents of category to label.
+      %
+      %     See also locator/setcat, locator/initcat, locator/combs
+      %
+      %     IN:
+      %       - `cat` (uint32)
+      %       - `lab` (uint32)
+      
+      loc_fillcat( obj.id, cat, lab );      
     end
     
     function obj = collapsecat(obj, cats)
@@ -730,8 +750,10 @@ classdef locator
       nargoutchk( 1, Inf );
       
       [varargout{1:nargout}] = loc_from( loc_convertible );
-      
-      varargout{1} = locator( varargout{1} );
+
+      if ( ~isa(varargout{1}, 'locator') )
+        varargout{1} = locator( varargout{1} );
+      end
     end
     
     function loc = with(cat, label, index)
