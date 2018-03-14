@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <stdexcept>
 #include <vector>
+#include <cstdint>
 
 namespace util {
     template<typename K, typename V>
@@ -34,6 +35,8 @@ public:
     
     V at(K key) const;
     K at(V key) const;
+    
+    size_t size() const;
     
     bool contains(K key) const;
     bool contains(V key) const;
@@ -164,4 +167,10 @@ std::vector<V> util::multimap<K, V>::values() const
     }
     
     return res;
+}
+
+template<typename K, typename V>
+size_t util::multimap<K, V>::size() const
+{
+    return m_kv.size();
 }

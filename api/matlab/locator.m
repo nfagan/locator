@@ -22,7 +22,7 @@ classdef locator
       %     loc = locator( id ) constructs an object from the `id` of
       %     a valid instance.
       %
-      %     See also locator/find, locator/addcat, locator/setcat
+      %     See also locator/find, locator/findall, locator/initcat
       
       if ( nargin == 1 )
         if ( numel(id) ~= 1 || ~loc_isloc(id) )
@@ -70,7 +70,11 @@ classdef locator
       %       - `sz` (uint32)
       
       if ( nargin == 1 )
-        sz = [ loc_size(obj.id), 1 ];
+        if ( isvalid(obj) )
+          sz = [ loc_size(obj.id), 1 ];
+        else
+          sz = [ 0, 1 ];
+        end
         return;
       end
       
@@ -86,7 +90,11 @@ classdef locator
         return;
       end
       
-      sz = loc_size( obj.id );
+      if ( isvalid(obj) )
+        sz = loc_size( obj.id );
+      else
+        sz = 0;
+      end
     end
     
     function tf = isempty(obj)

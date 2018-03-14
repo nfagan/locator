@@ -5,8 +5,8 @@ loc_test_assert_depends_present();
 sp = get_labels( get_example_container() );
 
 [y, ~, lab_map_z] = locator.from( sp );
-lab_map_values = cell2mat( lab_map_z.values() );
-lab_map_keys = lab_map_z.keys();
+lab_map_values = values( lab_map_z );
+lab_map_keys = keys( lab_map_z );
 
 n_iters = 1e3;
 

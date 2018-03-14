@@ -21,9 +21,12 @@ namespace util {
     void insert(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     void at(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     
+    void size(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
+    
     void contains_kv(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     
     void instances(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
+    void is_multimap(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     
     void keys(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     void values(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);

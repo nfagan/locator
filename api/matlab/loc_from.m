@@ -117,9 +117,9 @@ try
   in_inds = sp.indices;
   in_labs = sp.labels;
   in_cats = sp.categories;
-
-  out_cats = containers.Map( 'keytype', 'char', 'valuetype', 'uint32' );
-  out_labs = containers.Map( 'keytype', 'char', 'valuetype', 'uint32' );
+  
+  out_cats = multimap();
+  out_labs = multimap();
   
   n_cats = uint32(1);
 
@@ -130,7 +130,7 @@ try
     
     out_lab = uint32(i);
     
-    if ( ~out_cats.isKey(in_cat) )
+    if ( ~contains(out_cats, in_cat) )
       out_cats(in_cat) = n_cats;
       c_cat = n_cats;
       n_cats = n_cats + 1;

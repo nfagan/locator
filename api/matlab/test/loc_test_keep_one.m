@@ -6,8 +6,8 @@ sp = get_labels( get_example_container() );
 
 [loc, cat_map, lab_map] = locator.from( sp );
 
-lab_keys = lab_map.keys();
-lab_values = cell2mat( lab_map.values() );
+lab_keys = keys( lab_map );
+lab_values = values( lab_map );
 
 n_iters = 1e4;
 

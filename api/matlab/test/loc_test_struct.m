@@ -10,10 +10,10 @@ sp = cont.labels;
 
 s = loc_struct( loc );
 
-lab_map_keys = lab_map.keys();
-lab_map_values = cell2mat( lab_map.values() );
-cat_map_keys = cat_map.keys();
-cat_map_values = cell2mat( cat_map.values() );
+lab_map_keys = keys( lab_map );
+lab_map_values = values( lab_map );
+cat_map_keys = keys( cat_map );
+cat_map_values = values( cat_map );
 
 for i = 1:numel(s.labels)
   lab = s.labels(i);

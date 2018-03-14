@@ -51,7 +51,7 @@ classdef multimap
       %     OUT:
       %       - `tf` (logical)
       
-      tf = any( multimap.instances == obj.id );
+      tf = loc_multimap_api( loc_multimap_opcodes('is_multimap'), obj.id );
     end
     
     function tf = contains(obj, kv)
@@ -103,7 +103,59 @@ classdef multimap
       %     OUT:
       %       - `id` (uint32)
       
-      id = obj.id;      
+      id = obj.id;
+    end
+    
+    function sz = numel(obj)
+      
+      %   NUMEL -- Get the number of keys in the multimap.
+      %
+      %     OUT:
+      %       - `sz` (uint32_t)
+      
+      op_code = loc_multimap_opcodes( 'size' );
+      sz = loc_multimap_api( op_code, obj.id );
+    end
+    
+    function sz = size(obj, dim)
+      
+      %   SIZE -- Get the number of key-value pairs in the mutimap.
+      %
+      %     See also multimap/keys, multimap/values
+      %
+      %     IN:
+      %       - `dimension` |OPTIONAL| (numeric)
+      %     OUT:
+      %       - `sz` (uint32)
+      
+      if ( nargin == 1 )
+        if ( isvalid(obj) )
+          op_code = loc_multimap_opcodes( 'size' );
+          sz_scalar = loc_multimap_api( op_code, obj.id );
+          sz = [ sz_scalar, 1 ];
+        else
+          sz = [ 0, 1 ];
+        end
+        return;
+      end
+      
+      msg = [ 'Dimension argument must be a positive integer' ...
+          , ' scalar within indexing range.' ];
+        
+      if ( ~isnumeric(dim) || ~isscalar(dim) || dim < 1 )
+        error( msg );
+      end
+      
+      if ( dim > 1 )
+        sz = 1;
+        return;
+      end
+      
+      if ( isvalid(obj) )
+        sz = loc_multimap_api( loc_multimap_opcodes('size'), obj.id );
+      else
+        sz = 0;
+      end
     end
     
     function obj = subsasgn(obj, s, values)

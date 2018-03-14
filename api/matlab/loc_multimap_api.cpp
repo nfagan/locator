@@ -33,6 +33,8 @@ void util::init_multimap_functions()
     globals::funcs[ops::VALUES] =                   &util::values;
     globals::funcs[ops::CONTAINS] =                 &util::contains_kv;
     globals::funcs[ops::COPY] =                     &util::copy;
+    globals::funcs[ops::SIZE] =                     &util::size;
+    globals::funcs[ops::IS_MULTIMAP] =              &util::is_multimap;
     
     globals::INITIALIZED = true;
     
@@ -85,6 +87,39 @@ util::loc_multimap_t& util::get_multimap(uint32_t id)
     }
     
     return it->second;
+}
+
+void util::is_multimap(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+{
+    using namespace util;
+    
+    assert_nrhs(nrhs, 2, "multimap:is_multimap");
+    assert_nlhs(nlhs, 1, "multimap:is_multimap");
+    
+    assert_scalar(prhs[1], "multimap:is_multimap", "Id must be scalar.");
+    
+    uint32_t id = mxGetScalar(prhs[1]);
+    bool exists = globals::multimaps.find(id) != globals::multimaps.end();
+    
+    plhs[0] = mxCreateLogicalScalar(exists);
+}
+
+void util::size(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+{
+    using namespace util;
+    
+    assert_nrhs(nrhs, 2, "multimap:size");
+    assert_nlhs(nlhs, 1, "multimap:size");
+    
+    assert_scalar(prhs[1], "multimap:size", "Id must be scalar.");
+    
+    const loc_multimap_t& c_multimap = get_multimap(mxGetScalar(prhs[1]));
+    
+    plhs[0] = mxCreateUninitNumericMatrix(1, 1, mxUINT32_CLASS, mxREAL);
+    
+    uint32_t* data = (uint32_t*) mxGetData(plhs[0]);
+    data[0] = c_multimap.size();
+    
 }
 
 void util::contains_kv(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])

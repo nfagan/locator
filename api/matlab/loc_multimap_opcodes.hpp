@@ -17,8 +17,10 @@ namespace util {
         constexpr uint32_t VALUES =               6u;
         constexpr uint32_t CONTAINS =             7u;
         constexpr uint32_t COPY =                 8u;
+        constexpr uint32_t SIZE =                 9u;
+        constexpr uint32_t IS_MULTIMAP =          10u;
         //  how many ops
-        constexpr uint32_t N_OPS =                9u;
+        constexpr uint32_t N_OPS =                11u;
     };
     
     typedef std::unordered_map<std::string, uint32_t> op_map_t;
