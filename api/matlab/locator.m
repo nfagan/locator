@@ -472,11 +472,21 @@ classdef locator
       loc_collapsecat( obj.id, cats );
     end
     
+    function obj = one(obj)
+      
+      %   ONE -- Retain a single row, collapsing non-uniform categories.
+      %
+      %     See also locator/collapsecat
+      
+      keep( collapsecat(obj, getcats(obj)), 1 );
+    end
+    
     function [full_cat, lab_map] = makelabs(obj, strs, lab_map)
       
       %   MAKELABS -- Make labels from cell array of strings.
       %
-      %     full_cat = makecat( obj, {'hi', 'hello'} ); returns [1, 2]
+      %     full_cat = makecat( obj, {'hi', 'hello'} ); returns a 1x2 row
+      %     vector with label ids corresponding to 'hi' and 'hello'.
       %
       %     [ ..., lab_map ] = makecat( ... ) also returns `lab_map`, a 
       %     multimap binding each unique char label to each unique integer 

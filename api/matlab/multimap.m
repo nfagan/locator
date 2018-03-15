@@ -67,7 +67,19 @@ classdef multimap
         kv = uint32( kv );
       end
       
-      tf = loc_multimap_api( loc_multimap_opcodes('contains'), obj.id, kv );
+      opcode = loc_multimap_opcodes( 'contains' );
+      
+      if ( iscellstr(kv) )
+        tf = cellfun( @(x) loc_multimap_api(opcode, obj.id, x), kv );
+        return;
+      end
+      
+      if ( ~ischar(kv) && numel(kv) > 1 )
+        tf = arrayfun( @(x) loc_multimap_api(opcode, obj.id, x), kv );
+        return;
+      end
+      
+      tf = loc_multimap_api( opcode, obj.id, kv );
     end
     
     function k = keys(obj)
