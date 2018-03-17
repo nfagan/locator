@@ -210,9 +210,10 @@ void util::find_all(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     const types::entries_t in_cats_entries = copy_array_into_entries(in_cats, n_in_cats);
     
     bool exists;
+    uint32_t index_offset = 1u;
     
-    const types::entries_t combs = c_locator.combinations(in_cats_entries, &exists);
-    const uint32_t n_result = combs.tail();
+    const types::find_all_return_t res = c_locator.find_all(in_cats_entries, 
+            &exists, index_offset);
     
     if (!exists)
     {
@@ -220,39 +221,33 @@ void util::find_all(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         return;
     }
     
-    if (n_result == 0)
+    const uint32_t n_combs = res.combinations.tail();
+    
+    if (n_combs == 0)
     {
         plhs[0] = mxCreateCellMatrix(1, 0);
         plhs[1] = mxCreateUninitNumericMatrix(0, n_in_cats, mxUINT32_CLASS, mxREAL);
         return;
     }
     
-    uint32_t n_indices = n_result / n_in_cats;
+    uint32_t n_indices = res.indices.tail();
     
     mxArray* all_indices = mxCreateCellMatrix(1, n_indices);
     
-    uint32_t* all_combs_ptr = combs.unsafe_get_pointer();
+    types::entries_t* res_indices_ptr = res.indices.unsafe_get_pointer();
     
-    types::entries_t labs_to_find(n_in_cats);
-    uint32_t* labs_to_find_ptr = labs_to_find.unsafe_get_pointer();
-    
-    uint32_t cell_idx = 0;
-    
-    for (uint32_t i = 0; i < n_result; i += n_in_cats)
+    for (uint32_t i = 0; i < n_indices; i++)
     {
-        std::memcpy(labs_to_find_ptr, all_combs_ptr + i, n_in_cats * sizeof(uint32_t));
-                
-        types::entries_t one_find_result = c_locator.find(labs_to_find, 1u);
+        const types::entries_t& one_combination_inds = res_indices_ptr[i];
         
-        mxArray* one_find_arr = make_entries_into_array(one_find_result, one_find_result.tail());
+        mxArray* one_combination_arr = make_entries_into_array(one_combination_inds, 
+                one_combination_inds.tail());
         
-        mxSetCell(all_indices, cell_idx, one_find_arr);
-        
-        cell_idx++;
+        mxSetCell(all_indices, i, one_combination_arr);
     }
     
     plhs[0] = all_indices;
-    plhs[1] = make_entries_into_array(combs, n_result);
+    plhs[1] = make_entries_into_array(res.combinations, n_combs);
 }
 
 void util::combinations(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])

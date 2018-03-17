@@ -17,6 +17,19 @@ namespace util {
 class util::bit_array
 {
 public:
+    struct iterator
+    {
+        iterator(const bit_array* barray);
+        void next();
+        bool value() const;
+    private:
+        uint32_t* m_data;
+        uint32_t m_idx;
+        uint32_t m_bin;
+        uint32_t m_bit;
+        uint32_t m_size_int;
+    };
+    
     bit_array();
     bit_array(uint32_t size);
     bit_array(uint32_t size, bool fill_with);
@@ -26,6 +39,8 @@ public:
     bit_array& operator=(const bit_array& other);
     bit_array(bit_array&& rhs) noexcept;
     bit_array& operator=(bit_array&& other) noexcept;
+    
+    bit_array::iterator begin() const;
     
     uint32_t size() const;
     uint32_t sum() const;

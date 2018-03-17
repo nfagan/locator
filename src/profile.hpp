@@ -32,5 +32,5 @@ namespace util {
 #define LOC_PROFILE_STOP() \
     t2 = util::profile::clock_t::now();
 
-#define LOC_PROFILE_SUMMARY() \
-    std::cout << (util::profile::ellapsed_time_s(t1, t2) * 1000.0) << " (ms)" << std::endl;
+#define LOC_PROFILE_SUMMARY(label) \
+    std::cout << #label << (util::profile::ellapsed_time_s(t1, t2) * 1000.0) << " (ms)" << std::endl;

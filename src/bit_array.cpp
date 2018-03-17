@@ -600,17 +600,18 @@ util::dynamic_array<uint32_t> util::bit_array::find(const util::bit_array &a, ui
     
     util::dynamic_array<uint32_t> result(n_true);
     
-    result.seek_tail_to_start();
-    
     if (n_true == 0)
     {
         return result;
     }
     
+    uint32_t* result_ptr = result.unsafe_get_pointer();
+    
     uint32_t data_size = a.get_data_size(a.m_size);
     uint32_t last_bit = a.get_bit(a.m_size);
     uint32_t* data = a.m_data.unsafe_get_pointer();
     uint32_t size_int = a.m_size_int;
+    uint32_t result_idx = 0;
     
     for (size_t i = 0; i < data_size; i++)
     {
@@ -636,10 +637,45 @@ util::dynamic_array<uint32_t> util::bit_array::find(const util::bit_array &a, ui
         {
             if (datum & (1u << j))
             {
-                result.push(i * size_int + j + index_offset);
+                result_ptr[result_idx] = (i * size_int) + j + index_offset;
+                result_idx++;
             }
         }
     }
     
     return result;
 }
+
+util::bit_array::iterator util::bit_array::begin() const
+{
+    return util::bit_array::iterator(this);
+}
+
+//  iterator
+
+util::bit_array::iterator::iterator(const util::bit_array* barray)
+{
+    m_idx = 0;
+    m_bin = 0;
+    m_bit = 0;
+    m_size_int = barray->m_size_int;
+    m_data = barray->m_data.unsafe_get_pointer();
+}
+
+void util::bit_array::iterator::next()
+{
+    if (++m_bit == m_size_int)
+    {
+        m_bit = 0;
+        m_bin++;
+    }
+    
+    m_idx++;
+}
+
+bool util::bit_array::iterator::value() const
+{
+    return m_data[m_bin] & (1u << m_bit);
+}
+
+

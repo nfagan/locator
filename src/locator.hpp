@@ -19,9 +19,14 @@ namespace util {
     class locator;
     
     namespace types {
-        typedef util::dynamic_array<uint32_t> entries_t;
-        typedef util::dynamic_array<uint32_t> numeric_indices_t;
-        typedef util::dynamic_array<util::bit_array, util::dynamic_allocator<util::bit_array>> indices_t;
+        using entries_t = util::dynamic_array<uint32_t>;
+        using numeric_indices_t = util::dynamic_array<uint32_t>;
+        using arr_entries_t = util::dynamic_array<entries_t, util::dynamic_allocator<entries_t>>;
+        
+        struct find_all_return_t {
+            entries_t combinations;
+            arr_entries_t indices;
+        };
     }
     
     struct locator_status {
@@ -98,6 +103,8 @@ public:
     
     types::numeric_indices_t find(const types::entries_t& labels, uint32_t index_offset = 0u);
     types::numeric_indices_t find(const uint32_t label, uint32_t index_offset = 0u) const;
+    types::find_all_return_t find_all(const types::entries_t& categories,
+                                      bool* exist, uint32_t index_offset = 0u) const;
     
     uint32_t get_random_label_id() const;
 private:
@@ -120,4 +127,5 @@ private:
     
     void unchecked_add_category(uint32_t category);
     void unchecked_set_category(uint32_t category, uint32_t label, bool is_present, bool create_tmp, const util::bit_array& index);
+    void unchecked_full_category(uint32_t* labs, uint32_t n_labs, uint32_t* out, uint32_t offset) const;
 };

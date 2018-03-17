@@ -149,8 +149,6 @@ void test_combinations()
     
     assert(exists);
     
-    std::cout << res.tail() << std::endl;
-    
     for (uint32_t i = 0; i < res.tail(); i++)
     {
         std::cout << res.at(i) << std::endl;

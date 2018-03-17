@@ -7,6 +7,7 @@
 #include <thread>
 #include "utilities.hpp"
 
+void test_iterator();
 void test_all();
 void test_resize();
 void test_append_one();
@@ -36,6 +37,7 @@ double test_profile_resize(uint32_t sz);
 int main(int argc, char* argv[])
 {
     std::cout << "BEGIN BIT_ARRAY" << std::endl;
+    test_iterator();
     test_resize();
     test_append_one();
     test_any_all();
@@ -86,6 +88,38 @@ double test_profile_resize(uint32_t sz = 1e3)
     profile::time_point_t t2 = profile::clock_t::now();
     
     return profile::ellapsed_time_s(t1, t2);
+}
+
+void test_iterator()
+{
+    using namespace util;
+    
+    bit_array barray(101, false);
+    
+    auto it = barray.begin();
+    uint32_t sz = barray.size();
+    
+    for (uint32_t i = 0; i < sz; i++)
+    {
+        assert(!it.value());
+        it.next();
+    }
+    
+    barray.place(true, 30);
+    barray.place(true, 33);
+    
+    it = barray.begin();
+    
+    for (uint32_t i = 0; i < sz; i++)
+    {
+        bool value = it.value();
+        
+        assert((i == 30 || i == 33 ? value : !value));
+        
+        it.next();
+    }
+    
+    std::cout << "OK" << std::endl;
 }
 
 void test_resize()
