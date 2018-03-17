@@ -24,7 +24,7 @@ toc;
 %%
 
 % desired_cats = { 'doses', 'images', 'file_names', 'genders', 'sessions' };
-desired_cats = f(1);
+desired_cats = f;
 
 tic;
 x = combs( loc, c(desired_cats) );
@@ -38,7 +38,7 @@ meas = spc(:, cat_ind);
 [C, ~, ib] = unique( meas, 'rows' );
 numoccurences = accumarray(ib, 1);
 I = accumarray( ib, (1:numel(ib))', [], @(rows) {sort(rows)} );
-disp( toc * 1e3 );
+toc;
 %%
 for i = 1:numel(I)
   subset_row = cellstr( C(i, :) );
@@ -49,7 +49,15 @@ end
 %%
 tic;
 [I2, C2] = findall( loc, c(desired_cats) );
-disp( toc * 1e3 );
+% y = l(C2);
+toc;
+
+%%
+tic;
+for i = 1:100
+  z = l(C2);
+end
+toc;
 
 %%
 

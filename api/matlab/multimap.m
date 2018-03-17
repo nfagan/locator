@@ -15,7 +15,7 @@ classdef multimap
       %     values to keys. In this way, lookup is constant time in either 
       %     direction.
       %
-      %     MULTIMAP objects are meant to be used along side LOCATOR
+      %     MULTIMAP objects are meant to be used along side locator
       %     objects, in order to efficiently switch between string and
       %     integer representations of labels and categories.
       %
@@ -209,19 +209,6 @@ classdef multimap
       
       referent = s.subs{1};
       
-      %   obj([1, 2, 3])
-      if ( isnumeric(referent) && numel(referent) > 1 )
-        out = arrayfun( @(x) get(obj, x), s.subs{1}, 'un', false );
-        return;
-      end
-      
-      %   obj({'eg1', 'eg2'})
-      if ( iscellstr(referent) )
-        out = cellfun( @(x) get(obj, x), s.subs{1} );
-        return;
-      end
-      
-      %   obj('eg') or obj(1)
       out = get( obj, referent );
     end
     
@@ -255,7 +242,7 @@ classdef multimap
       %     See also multimap/set
       %
       %     IN:
-      %       - `key` (uint32, char)
+      %       - `key` (uint32, char, cell array of strings)
       %     OUT:
       %       - `value` (uint32, char)
       
@@ -265,6 +252,10 @@ classdef multimap
       
       opcode = loc_multimap_opcodes( 'at' );
       value = loc_multimap_api( opcode, obj.id, key );
+      
+      if ( ~ischar(value) && ~ischar(key) )
+        value = reshape( value, size(key) );
+      end
     end
     
     function destroy(obj)

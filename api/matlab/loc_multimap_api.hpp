@@ -33,4 +33,7 @@ namespace util {
     
     void assert_char_or_uint32_t_class(mxClassID id);
     void assert_char_or_uint32_t(const mxArray* in_arr);
+    
+    std::string get_string_or_err(const loc_multimap_t& map, uint32_t key);
+    uint32_t get_uint32_t_or_err(const loc_multimap_t& map, mxArray* key_arr);
 }

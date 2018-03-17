@@ -829,8 +829,6 @@ classdef locator
       %
       %     See also loc_from, locator/locator
       
-      nargoutchk( 1, Inf );
-      
       [varargout{1:nargout}] = loc_from( loc_convertible );
 
       if ( ~isa(varargout{1}, 'locator') )

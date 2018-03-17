@@ -214,6 +214,11 @@ util::types::entries_t util::locator::all_in_category(uint32_t category, bool *e
 
 util::types::entries_t util::locator::full_category(uint32_t category, bool *exists) const
 {
+    return full_category(category, get_random_label_id(), exists);
+}
+
+util::types::entries_t util::locator::full_category(uint32_t category, uint32_t set_empty_labels, bool *exists) const
+{
     auto it = m_by_category.find(category);
     
     if (it == m_by_category.end())
@@ -240,7 +245,7 @@ util::types::entries_t util::locator::full_category(uint32_t category, bool *exi
     util::types::entries_t result(sz);
     uint32_t* result_ptr = result.unsafe_get_pointer();
     
-    std::memset(result_ptr, get_random_label_id(), sz * sizeof(uint32_t));
+    std::memset(result_ptr, set_empty_labels, sz * sizeof(uint32_t));
     
     for (uint32_t i = 0; i < n_in_cat; i++)
     {
@@ -257,23 +262,6 @@ util::types::entries_t util::locator::full_category(uint32_t category, bool *exi
     }
     
     return result;
-}
-
-void util::locator::unchecked_full_category(uint32_t *labs, uint32_t n_labs, uint32_t *out, uint32_t offset) const
-{
-    for (uint32_t i = 0; i < n_labs; i++)
-    {
-        uint32_t lab = labs[i];
-        auto inds = util::bit_array::find(m_indices.at(lab));
-        uint32_t* inds_ptr = inds.unsafe_get_pointer();
-        
-        uint32_t n_inds = inds.tail();
-        
-        for (uint32_t j = 0; j < n_inds; j++)
-        {
-            out[inds_ptr[j] + offset] = lab;
-        }
-    }
 }
 
 util::types::find_all_return_t util::locator::find_all(const types::entries_t& categories,
@@ -297,17 +285,20 @@ util::types::find_all_return_t util::locator::find_all(const types::entries_t& c
     types::arr_entries_t full_categories(n_cats_in);
     types::entries_t* full_categories_ptr = full_categories.unsafe_get_pointer();
     
-    LOC_PROFILE_BEGIN()
-    LOC_PROFILE_START()
+    //  fill empty spaces in categories with this label
+    uint32_t rand_lab = get_random_label_id();
     
     for (uint32_t i = 0; i < n_cats_in; i++)
     {
-        full_categories_ptr[i] = full_category(cat_ptr[i], exist);
+        full_categories_ptr[i] = full_category(cat_ptr[i], rand_lab, exist);
         
         if (!(*exist))
         {
             return result;
         }
+        
+        //  if there are no labels in the category, no
+        //  combinations can possibly exist
         
         if (full_categories_ptr[i].tail() == 0)
         {
@@ -315,27 +306,30 @@ util::types::find_all_return_t util::locator::find_all(const types::entries_t& c
         }
     }
     
-    LOC_PROFILE_STOP()
-    LOC_PROFILE_SUMMARY(Full category:)
-    
     uint32_t sz = size();
     
-    std::string hash_code;
+    //  hash based on the sequence of bits formed by
+    //  labels in a given category
+    size_t size_int = sizeof(uint32_t);
+    std::string hash_code(n_cats_in * size_int, 'a');
+    char* hash_code_ptr = &hash_code[0];
+    
     std::unordered_map<std::string, uint32_t> combination_exists;
     uint32_t next_id = 0;
     
+    //  start with room for 2048 combinations (just a guess)
     result.combinations.resize(2048);
     result.combinations.seek_tail_to_start();
-    
-    LOC_PROFILE_START()
+    result.indices.resize(2048);
+    result.indices.seek_tail_to_start();
     
     for (uint32_t i = 0; i < sz; i++)
     {
         for (uint32_t j = 0; j < n_cats_in; j++)
         {
             uint32_t* full_cat = full_categories_ptr[j].unsafe_get_pointer();
-            hash_code += std::to_string(full_cat[i]);
-            hash_code += "A";
+            //  copy bits to string
+            std::memcpy(hash_code_ptr + j * size_int, &full_cat[i], size_int);
         }
         
         auto c_it = combination_exists.find(hash_code);
@@ -351,8 +345,11 @@ util::types::find_all_return_t util::locator::find_all(const types::entries_t& c
             }
             
             combination_exists[hash_code] = next_id;
+            
             comb_idx = next_id;
+            
             next_id++;
+            
             result.indices.push(util::types::entries_t());
         }
         else
@@ -362,11 +359,7 @@ util::types::find_all_return_t util::locator::find_all(const types::entries_t& c
         
         types::entries_t* inds_ptr = result.indices.unsafe_get_pointer();
         inds_ptr[comb_idx].push(i + index_offset);
-        hash_code.clear();
     }
-    
-    LOC_PROFILE_STOP()
-    LOC_PROFILE_SUMMARY(Find:)
     
     return result;
 }
@@ -429,7 +422,6 @@ util::types::entries_t util::locator::combinations(const types::entries_t& categ
         
         auto c_it = combination_exists.find(hash_code);
         bool c_exists = c_it != combination_exists.end();
-        uint32_t comb_idx;
         
         if (!c_exists)
         {

@@ -123,9 +123,10 @@ private:
     uint32_t find_label(uint32_t label, bool* was_found) const;
     uint32_t find_label(uint32_t label) const;
     
+    types::entries_t full_category(uint32_t category, uint32_t set_empty_labels, bool* exists) const;
+    
     uint32_t get_random_category_id() const;
     
     void unchecked_add_category(uint32_t category);
     void unchecked_set_category(uint32_t category, uint32_t label, bool is_present, bool create_tmp, const util::bit_array& index);
-    void unchecked_full_category(uint32_t* labs, uint32_t n_labs, uint32_t* out, uint32_t offset) const;
 };
