@@ -673,12 +673,13 @@ classdef labeler
       destroy( obj.categories );
     end
     
-    function C = cellstr(obj)
+    function [C, all_cats] = cellstr(obj)
       
       %   CELLSTR -- Convert to a cell array of strings.
       %
       %     OUT:
       %       - `c` (cell array of strings)
+      %       - `all_cats` (cell array of strings)
       
       C = zeros( size(obj, 1), ncats(obj) );
       all_cats = getcats( obj );
@@ -687,17 +688,29 @@ classdef labeler
         C(:, i) = fullcat( obj.loc, all_cats(i) );
       end
       
-      C = maplabs( obj, C );
+      C = get( obj.labels, C );
+      
+      if ( nargout > 1 )
+        all_cats = get( obj.categories, all_cats );
+      end
     end
     
-    function C = categorical(obj)
+    function [C, cats] = categorical(obj)
       
       %   CATEGORICAL -- Convert to categorical array.
       %
+      %     C = categorical( obj ) converts the object to a categorical
+      %     array.
+      %
+      %     [C, cats] = ... also returns `cats`, a 1xN cell array of
+      %     strings that identify the columns of `C`.
+      %
       %     OUT:
       %       - `c` (categorical)
+      %       - `cats` (cell array of strings)
       
-      C = categorical( cellstr(obj) );      
+      [C, cats] = cellstr( obj );
+      C = categorical( C );      
     end
   end
   
