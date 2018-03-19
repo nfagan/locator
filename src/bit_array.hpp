@@ -22,6 +22,7 @@ public:
         iterator(const bit_array* barray);
         void next();
         bool value() const;
+        void set(bool value);
     private:
         uint32_t* m_data;
         uint32_t m_idx;

@@ -51,12 +51,14 @@ void util::init_locator_functions()
     globals::funcs[ops::SET_CATEGORY_MULT] =        &util::set_category_mult;
     globals::funcs[ops::N_LABELS] =                 &util::n_labels;
     globals::funcs[ops::RESIZE] =                   &util::resize;
-    globals::funcs[ops::COMBINATIONS] =             &util::combinations;
     globals::funcs[ops::FULL_CATEGORY] =            &util::full_category;
     globals::funcs[ops::GET_RANDOM_LABEL] =         &util::get_random_label;
     globals::funcs[ops::FILL_CATEGORY] =            &util::fill_category;
     globals::funcs[ops::FIND_ALL] =                 &util::find_all;
     globals::funcs[ops::IS_FULL_CATEGORY] =         &util::is_full_category;
+    globals::funcs[ops::GET_RANDOM_LABEL2] =        &util::get_random_label2;
+    globals::funcs[ops::SWAP_LABEL] =               &util::swap_label;
+    globals::funcs[ops::SWAP_CATEGORY] =            &util::swap_category;
     
     globals::INITIALIZED = true;
     
@@ -172,6 +174,12 @@ void util::fill_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prh
         return;
     }
     
+    if (res == locator_status::IS_UNDEFINED_LABEL)
+    {
+        mexErrMsgIdAndTxt("locator:fill_category", "Cannot fill category with undefined label.");
+        return;
+    }
+    
     mexErrMsgIdAndTxt("locator:fill_category", "Unexpected error.");
 }
 
@@ -182,7 +190,7 @@ void util::get_random_label(int nlhs, mxArray *plhs[], int nrhs, const mxArray *
     assert_nrhs(nrhs, 2, "locator:get_random_label");
     assert_nlhs(nlhs, 1, "locator:get_random_label");
     
-    assert_scalar(prhs[1], "locator:resize", "Id must be scalar.");
+    assert_scalar(prhs[1], "locator:get_random_label", "Id must be scalar.");
     
     const locator& c_locator = get_locator(mxGetScalar(prhs[1]));
     
@@ -191,6 +199,100 @@ void util::get_random_label(int nlhs, mxArray *plhs[], int nrhs, const mxArray *
     uint32_t* id_arr = (uint32_t*) mxGetData(plhs[0]);
     
     id_arr[0] = c_locator.get_random_label_id();  
+}
+
+void util::get_random_label2(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+{
+    using namespace util;
+    
+    assert_nrhs(nrhs, 3, "locator:get_random_label");
+    assert_nlhs(nlhs, 1, "locator:get_random_label");
+    
+    assert_scalar(prhs[1], "locator:get_random_label", "Id must be scalar.");
+    assert_scalar(prhs[2], "locator:get_random_label", "Id must be scalar.");
+    
+    const locator& c_locator_a = get_locator(mxGetScalar(prhs[1]));
+    const locator& c_locator_b = get_locator(mxGetScalar(prhs[2]));
+    
+    plhs[0] = mxCreateUninitNumericMatrix(1, 1, mxUINT32_CLASS, mxREAL);
+    
+    uint32_t* id_arr = (uint32_t*) mxGetData(plhs[0]);
+    
+    id_arr[0] = locator::get_random_label_id(c_locator_a, c_locator_b);
+}
+
+void util::swap_label(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+{
+    using namespace util;
+    
+    assert_nrhs(nrhs, 4, "locator:swap_label");
+    assert_nlhs(nlhs, 0, "locator:swap_label");
+    
+    const mxArray* in_id = prhs[1];
+    const mxArray* from_lab = prhs[2];
+    const mxArray* to_lab = prhs[3];
+    
+    assert_scalar(in_id, "locator:swap_label", "Id must be scalar.");
+    assert_scalar(from_lab, "locator:swap_label", "From label must be scalar.");
+    assert_scalar(to_lab, "locator:swap_label", "To label must be scalar.");
+    
+    locator& c_locator = get_locator(mxGetScalar(in_id));
+    
+    uint32_t res = c_locator.swap_label(mxGetScalar(from_lab), mxGetScalar(to_lab));
+    
+    if (res == locator_status::OK)
+    {
+        return;
+    }
+    
+    if (res == locator_status::LABEL_DOES_NOT_EXIST)
+    {
+        mexErrMsgIdAndTxt("locator:swap_label", "From label does not exist.");
+    }
+    
+    if (res == locator_status::LABEL_EXISTS)
+    {
+        mexErrMsgIdAndTxt("locator:swap_label", "To label already exists.");
+    }    
+    
+    mexErrMsgIdAndTxt("locator:swap_label", "Unknown error code.");
+}
+
+void util::swap_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+{
+    using namespace util;
+    
+    assert_nrhs(nrhs, 4, "locator:swap_category");
+    assert_nlhs(nlhs, 0, "locator:swap_category");
+    
+    const mxArray* in_id = prhs[1];
+    const mxArray* from_cat = prhs[2];
+    const mxArray* to_cat = prhs[3];
+    
+    assert_scalar(in_id, "locator:swap_category", "Id must be scalar.");
+    assert_scalar(from_cat, "locator:swap_category", "From label must be scalar.");
+    assert_scalar(to_cat, "locator:swap_category", "To label must be scalar.");
+    
+    locator& c_locator = get_locator(mxGetScalar(in_id));
+    
+    uint32_t res = c_locator.swap_category(mxGetScalar(from_cat), mxGetScalar(to_cat));
+    
+    if (res == locator_status::OK)
+    {
+        return;
+    }
+    
+    if (res == locator_status::CATEGORY_DOES_NOT_EXIST)
+    {
+        mexErrMsgIdAndTxt("locator:swap_category", "From category does not exist.");
+    }
+    
+    if (res == locator_status::CATEGORY_EXISTS)
+    {
+        mexErrMsgIdAndTxt("locator:swap_category", "To category already exists.");
+    }
+    
+    mexErrMsgIdAndTxt("locator:swap_category", "Unknown error code.");
 }
 
 void util::find_all(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
@@ -248,42 +350,6 @@ void util::find_all(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     plhs[0] = all_indices;
     plhs[1] = make_entries_into_array(res.combinations, n_combs);
-}
-
-void util::combinations(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
-{
-    using namespace util;
-    
-    assert_nrhs(nrhs, 3, "locator:combinations");
-    assert_nlhs(nlhs, 1, "locator:combinations");
-    
-    assert_scalar(prhs[1], "locator:combinations", "Id must be scalar.");
-    
-    const locator& c_locator = get_locator(mxGetScalar(prhs[1]));
-    
-    const mxArray* in_cats = prhs[2];
-    uint32_t n_in_cats = mxGetNumberOfElements(in_cats);
-    
-    const types::entries_t in_cats_entries = copy_array_into_entries(in_cats, n_in_cats);
-    
-    bool exists;
-    
-    const types::entries_t result = c_locator.combinations(in_cats_entries, &exists);
-    const uint32_t n_result = result.tail();
-    
-    if (!exists)
-    {
-        mexErrMsgIdAndTxt("locator:combinations", "Category does not exist.");
-        return;
-    }
-    
-    if (n_result == 0)
-    {
-        plhs[0] = mxCreateUninitNumericMatrix(0, n_in_cats, mxUINT32_CLASS, mxREAL);
-        return;
-    }
-    
-    plhs[0] = make_entries_into_array(result, n_result);
 }
 
 void util::full_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
@@ -481,8 +547,8 @@ void util::append(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     const mxArray* in_id_a = prhs[1];
     const mxArray* in_id_b = prhs[2];
     
-    assert_scalar(in_id_a, "locator:which_category", "Id must be scalar.");
-    assert_scalar(in_id_b, "locator:which_category", "Id must be scalar.");
+    assert_scalar(in_id_a, "locator:append", "Id must be scalar.");
+    assert_scalar(in_id_b, "locator:append", "Id must be scalar.");
     
     locator& c_locator_a = get_locator(mxGetScalar(in_id_a));
     const locator& c_locator_b = get_locator(mxGetScalar(in_id_b));
@@ -519,8 +585,8 @@ void util::equals(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     const mxArray* in_id_a = prhs[1];
     const mxArray* in_id_b = prhs[2];
     
-    assert_scalar(in_id_a, "locator:which_category", "Id must be scalar.");
-    assert_scalar(in_id_b, "locator:which_category", "Id must be scalar.");
+    assert_scalar(in_id_a, "locator:equals", "Id must be scalar.");
+    assert_scalar(in_id_b, "locator:equals", "Id must be scalar.");
     
     locator& c_locator_a = get_locator(mxGetScalar(in_id_a));
     locator& c_locator_b = get_locator(mxGetScalar(in_id_b));
@@ -563,8 +629,7 @@ void util::which_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *pr
         
         if (!label_exists)
         {
-            mexErrMsgIdAndTxt("locator:which_category", "Label does not exist.");
-            return;
+          in_category = locator::UNDEFINED_LABEL;
         }
         
         res_ptr[i] = in_category;
@@ -1064,7 +1129,8 @@ void util::set_category_mult(int nlhs, mxArray *plhs[], int nrhs, const mxArray 
 
 void util::set_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-    assert_nrhs(nrhs, 6, "locator:set_category");
+    util::assert_nrhs(nrhs, 6, "locator:set_category");
+    util::assert_nlhs(nlhs, 0, "locator:set_category");
     
     util::assert_scalar(prhs[1], "locator:set_category", "Id must be scalar.");
     util::assert_scalar(prhs[2], "locator:set_category", "Category must be scalar.");
@@ -1127,6 +1193,12 @@ void util::set_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs
     if (set_cat_result == util::locator_status::WRONG_INDEX_SIZE)
     {
         mexErrMsgIdAndTxt("locator:set_category", "Indices exceed locator dimensions.");
+        return;
+    }
+    
+    if (set_cat_result == util::locator_status::IS_UNDEFINED_LABEL)
+    {
+        mexErrMsgIdAndTxt("locator:set_category", "Category cannot contain undefined label.");
         return;
     }
 }

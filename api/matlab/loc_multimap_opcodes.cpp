@@ -14,7 +14,9 @@ const util::op_map_t op_map({
     {"contains", util::ops::CONTAINS},
     {"copy", util::ops::COPY},
     {"size", util::ops::SIZE},
-    {"is_multimap", util::ops::IS_MULTIMAP}
+    {"is_multimap", util::ops::IS_MULTIMAP},
+    {"at_or_undefined", util::ops::AT_OR_UNDEFINED},
+    {"erase", util::ops::ERASE}
 });
 
 void use_std_string(mxArray *plhs[], const mxArray *prhs[]);

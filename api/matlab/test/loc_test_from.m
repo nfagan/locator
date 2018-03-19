@@ -14,7 +14,7 @@ for i = 1:numel(all_labs)
   sp_ind = sp.where( all_labs{i} );
   loc_ind = loc_find( loc, lab_map(all_labs{i}) );
 
-  assert( all(find(sp_ind) == loc_ind) );
+  assert( isequal(find(sp_ind), loc_ind), 'Label indices were not equal.' );
 end
 
 [I, C] = sp.rget_indices( {'day', 'dose', 'image', 'session'} );
@@ -27,7 +27,7 @@ for i = 1:numel(I)
 
   loc_ind = loc_find( loc, loc_inds(i, :) );
 
-  assert( all(find(sp_ind) == loc_ind) );
+  assert( isequal(find(sp_ind), loc_ind) );
 end
 
 end

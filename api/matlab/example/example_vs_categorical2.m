@@ -48,7 +48,9 @@ end
 
 %%
 tic;
+for i = 1:100
 [I2, C2] = findall( loc, c(desired_cats) );
+end
 % y = l(C2);
 toc;
 

@@ -1,3 +1,5 @@
+function example_makelabs()
+
 %%  make labs
 
 orig_locators = locator.instances();
@@ -26,12 +28,16 @@ greetings = greetings( randperm(sz * 3) );
 farewells = [ byes; adios; peaces ];
 farewells = farewells( randperm(sz * 3) );
 
-fprintf( '\nLocator:\n' );
+profile_str = '(create)';
+fprintf( '\nlocator: %s\n', profile_str );
 
 tic;
 initcat( loc, c('greetings'), makelabs(loc, greetings, l) );
 initcat( loc, c('farewells'), makelabs(loc, farewells, l) );
 toc;
+
+profile_str = '(find all)';
+fprintf( '\nlocator: %s\n', profile_str );
 
 tic;
 [I, C] = findall( loc );
@@ -40,19 +46,73 @@ c_str = l(C)';
 
 toc;
 
-locator.destroyexcept( orig_locators );
-multimap.destroyexcept( orig_maps );
-
 %%  compare to categorical
 
-fprintf( '\ncategorical:\n' );
+profile_str = '(create)';
+
+fprintf( '\ncategorical: %s\n', profile_str );
 
 tic;
 categ = categorical( [greetings, farewells] );
 toc;
+
+profile_str = '(find all)';
+
+fprintf( '\ncategorical: %s\n', profile_str );
 
 tic;
 [C2, ~, ib] = unique( categ, 'rows' );
 n_occur = accumarray( ib, 1 );
 I2 = accumarray( ib, (1:numel(ib))', [], @(rows) {sort(rows)} );
 toc;
+
+%%  compare find, one category
+
+profile_str = '(find, one category)';
+
+fprintf( '\nlocator: %s\n', profile_str );
+
+tic;
+for i = 1:1e3
+  ind = find( loc, get(l, {'peace', 'bye', 'adios'}) );
+end
+toc;
+
+fprintf( '\ncategorical: %s\n', profile_str );
+tic;
+categ_farewells = categ(:, 2);
+for i = 1:1e3
+  ind2 = categ_farewells == 'peace' | categ_farewells == 'bye' | categ_farewells == 'adios';
+end
+toc;
+
+assert( isequal(ind, find(ind2)) );
+
+%%  compare find, multiple categories
+
+profile_str = '(find, multiple categories)';
+
+fprintf( '\nlocator: %s\n', profile_str );
+
+tic;
+for i = 1:1e3
+  ind = find( loc, get(l, {'peace', 'bye', 'hello'}) );
+end
+toc;
+
+fprintf( '\ncategorical: %s\n', profile_str );
+tic;
+categ_greetings = categ(:, 1);
+categ_farewells = categ(:, 2);
+for i = 1:1e3
+  ind2 = categ_greetings == 'hello' & (categ_farewells == 'bye' | categ_farewells == 'peace');
+end
+toc;
+
+assert( isequal(ind, find(ind2)) );
+
+%%  destroy
+
+locator.destroyexcept( orig_locators );
+multimap.destroyexcept( orig_maps );
+

@@ -35,6 +35,8 @@ void util::init_multimap_functions()
     globals::funcs[ops::COPY] =                     &util::copy;
     globals::funcs[ops::SIZE] =                     &util::size;
     globals::funcs[ops::IS_MULTIMAP] =              &util::is_multimap;
+    globals::funcs[ops::AT_OR_UNDEFINED] =          &util::at_or_undefined;
+    globals::funcs[ops::ERASE] =                    &util::erase;
     
     globals::INITIALIZED = true;
     
@@ -165,6 +167,83 @@ void util::contains_kv(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[
     plhs[0] = mxCreateLogicalScalar(c_multimap.contains(key));
 }
 
+void util::erase(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+{
+    using namespace util;
+    
+    assert_nrhs(nrhs, 3, "multimap:erase");
+    assert_nlhs(nlhs, 0, "multimap:erase");
+    
+    const mxArray* in_id = prhs[1];
+    const mxArray* in_keys = prhs[2];
+    
+    assert_scalar(in_id, "multimap:erase", "Id must be scalar.");
+    
+    loc_multimap_t& c_multimap = get_multimap(mxGetScalar(in_id));
+    
+    mxClassID id_key = mxGetClassID(in_keys);
+    
+    if (id_key == mxUINT32_CLASS)
+    {
+        uint32_t* keys = (uint32_t*) mxGetData(in_keys);
+        size_t n_els = mxGetNumberOfElements(in_keys);
+        
+        for (size_t i = 0; i < n_els; i++)
+        {
+            c_multimap.erase(keys[i]);
+        }
+        
+        return;
+    }
+    
+    if (id_key == mxCHAR_CLASS)
+    {
+        bool str_result;
+
+        std::string key = get_string(in_keys, &str_result);
+
+        if (!str_result)
+        {
+            mexErrMsgIdAndTxt("multimap:erase", "String copy failed.");
+        }
+        
+        c_multimap.erase(key);
+        
+        return;
+    }
+    
+    const char* type_err_msg = "Input must be char, uint32_t, or cellstr.";
+    
+    //  key is cell array of string
+    if (id_key != mxCELL_CLASS)
+    {
+        mexErrMsgIdAndTxt("multimap:erase", type_err_msg);
+    }
+    
+    size_t n_els = mxGetNumberOfElements(in_keys);
+    
+    for (size_t i = 0; i < n_els; i++)
+    {
+        const mxArray* str_array = mxGetCell(in_keys, i);
+        
+        if (mxGetClassID(str_array) != mxCHAR_CLASS)
+        {
+            mexErrMsgIdAndTxt("multimap:erase", type_err_msg);
+        }
+        
+        bool str_result;
+
+        std::string key = get_string(str_array, &str_result);
+
+        if (!str_result)
+        {
+            mexErrMsgIdAndTxt("multimap:erase", "String copy failed.");
+        }
+        
+        c_multimap.erase(key);
+    }
+}
+
 void util::keys(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
     using namespace util;
@@ -243,23 +322,12 @@ uint32_t util::get_uint32_t_or_err(const loc_multimap_t& map, mxArray* key_arr)
     return map.at(key);
 }
 
-void util::at(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+void util::at_helper(mxArray* plhs[], const util::loc_multimap_t& c_multimap,
+        const mxArray* key_arr, bool allow_undefined)
 {
-    using namespace util;
-    
-    assert_nrhs(nrhs, 3, "multimap:at");
-    assert_nlhs(nlhs, 1, "multimap:at");
-    
-    const mxArray* map_id = prhs[1];
-    const mxArray* key_arr = prhs[2];
-    
-    assert_scalar(map_id, "multimap:at", "Id must be scalar.");
-    
-    const loc_multimap_t& c_multimap = get_multimap(mxGetScalar(map_id));
-    
     mxClassID id_key = mxGetClassID(key_arr);
     
-    //  if we're passing integer keys
+    //  if key is uint32
     if (id_key == mxUINT32_CLASS)
     {
         size_t n_els = mxGetNumberOfElements(key_arr);
@@ -267,9 +335,24 @@ void util::at(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         
         //  if key is scalar, return char
         if (n_els == 1)
-        {            
-            std::string res = get_string_or_err(c_multimap, keys[0]);
-            plhs[0] = mxCreateString(res.c_str());
+        {
+            uint32_t key = keys[0];
+            
+            if (!allow_undefined)
+            {
+                std::string res = get_string_or_err(c_multimap, key);
+                plhs[0] = mxCreateString(res.c_str());
+            }
+            else if (c_multimap.contains(key))
+            {
+                std::string res = c_multimap.at(key);
+                plhs[0] = mxCreateString(res.c_str());
+            }
+            else
+            {
+                plhs[0] = mxCreateString("");
+            }
+            
             return;
         }
         
@@ -282,9 +365,17 @@ void util::at(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             
             if (!c_multimap.contains(key))
             {
-                mxDestroyArray(strs);
-                mexErrMsgIdAndTxt("multimap:get_string_or_err", "Key does not exist.");
-                return;
+                if (!allow_undefined)
+                {
+                    mxDestroyArray(strs);
+                    mexErrMsgIdAndTxt("multimap:get_string_or_err", "Key does not exist.");
+                    return;
+                }
+                else
+                {
+                    mxSetCell(strs, i, mxCreateString(""));
+                    continue;
+                }
             }
             
             mxSetCell(strs, i, mxCreateString(c_multimap.at(key).c_str()));
@@ -306,17 +397,30 @@ void util::at(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         {
             mexErrMsgIdAndTxt("multimap:at", "String copy failed.");
         }
+        
+        uint32_t val;
 
         if (!c_multimap.contains(key))
         {
-            mexErrMsgIdAndTxt("multimap:at", "Key does not exist.");
+            if (allow_undefined)
+            {
+                val = util::locator::UNDEFINED_LABEL;
+            }
+            else
+            {
+                mexErrMsgIdAndTxt("multimap:at", "Key does not exist.");
+            }
+        }
+        else
+        {
+            val = c_multimap.at(key);
         }
 
         plhs[0] = mxCreateUninitNumericMatrix(1, 1, mxUINT32_CLASS, mxREAL);
 
         uint32_t* data = (uint32_t*) mxGetData(plhs[0]);
 
-        data[0] = c_multimap.at(key);
+        data[0] = val;
         
         return;
     }
@@ -353,17 +457,68 @@ void util::at(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             mxDestroyArray(nums);
             mexErrMsgIdAndTxt("multimap:at", "String copy failed.");
         }
+        
+        uint32_t val;
 
         if (!c_multimap.contains(key))
         {
-            mxDestroyArray(nums);
-            mexErrMsgIdAndTxt("multimap:at", "Key does not exist.");
+            if (allow_undefined)
+            {
+                val = util::locator::UNDEFINED_LABEL;
+            }
+            else
+            {   
+                mxDestroyArray(nums);
+                mexErrMsgIdAndTxt("multimap:at", "Key does not exist.");
+            }
+        }
+        else
+        {
+            val = c_multimap.at(key);
         }
         
-        nums_data[i] = c_multimap.at(key);
+        nums_data[i] = val;
     }
     
     plhs[0] = nums;
+}
+
+void util::at_or_undefined(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+{
+    using namespace util;
+    
+    assert_nrhs(nrhs, 3, "multimap:at");
+    assert_nlhs(nlhs, 1, "multimap:at");
+    
+    const mxArray* map_id = prhs[1];
+    const mxArray* key_arr = prhs[2];
+    
+    assert_scalar(map_id, "multimap:at", "Id must be scalar.");
+    
+    const loc_multimap_t& c_multimap = get_multimap(mxGetScalar(map_id));
+    
+    bool allow_undefined = true;
+    
+    util::at_helper(plhs, c_multimap, key_arr, allow_undefined);
+}
+
+void util::at(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+{
+    using namespace util;
+    
+    assert_nrhs(nrhs, 3, "multimap:at");
+    assert_nlhs(nlhs, 1, "multimap:at");
+    
+    const mxArray* map_id = prhs[1];
+    const mxArray* key_arr = prhs[2];
+    
+    assert_scalar(map_id, "multimap:at", "Id must be scalar.");
+    
+    const loc_multimap_t& c_multimap = get_multimap(mxGetScalar(map_id));
+    
+    bool allow_undefined = false;
+    
+    util::at_helper(plhs, c_multimap, key_arr, allow_undefined);
 }
 
 void util::insert(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
@@ -404,6 +559,12 @@ void util::insert(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         
         std::string val = get_string(val_arr, &str_result);
         
+        if (val.size() == 0)
+        {
+            mexErrMsgIdAndTxt("multimap:insert", "Cannot insert an empty string.");
+            return;
+        }
+        
         if (!str_result)
         {
             mexErrMsgIdAndTxt("multimap:insert", "String copy failed.");
@@ -420,6 +581,13 @@ void util::insert(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     assert_scalar(val_arr, "multimap:insert", "uint32 value must be scalar.");
     
     std::string key = get_string(key_arr, &str_result);
+    
+    if (key.size() == 0)
+    {
+        mexErrMsgIdAndTxt("multimap:insert", "Key cannot be empty.");
+        return;
+    }
+    
     uint32_t val = mxGetScalar(val_arr);
     
     if (!str_result)

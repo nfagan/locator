@@ -40,9 +40,11 @@ namespace util {
         static constexpr uint32_t CATEGORIES_DO_NOT_MATCH = 7u;
         static constexpr uint32_t LOC_OVERFLOW = 8u;
         static constexpr uint32_t WRONG_NUMBER_OF_INDICES = 9u;
+        static constexpr uint32_t IS_UNDEFINED_LABEL = 10u;
+        static constexpr uint32_t LABEL_DOES_NOT_EXIST = 11u;
     };
     
-    uint32_t get_random_id(std::function<bool(const util::locator*, uint32_t)> exists_func, const util::locator* loc);
+    uint32_t get_random_id(std::function<bool(uint32_t)> exists_func);
 }
 
 class util::locator
@@ -83,6 +85,9 @@ public:
     bool has_category(uint32_t category) const;
     bool is_full_category(uint32_t category, bool* exists) const;
     
+    uint32_t swap_label(uint32_t from, uint32_t to);
+    uint32_t swap_category(uint32_t from, uint32_t to);
+    
     const types::entries_t& get_labels() const;
     const types::entries_t& get_categories() const;
     
@@ -99,14 +104,16 @@ public:
     
     uint32_t append(const util::locator& other);
     
-    types::entries_t combinations(const types::entries_t& categories, bool* exist) const;
-    
     types::numeric_indices_t find(const types::entries_t& labels, uint32_t index_offset = 0u);
     types::numeric_indices_t find(const uint32_t label, uint32_t index_offset = 0u) const;
     types::find_all_return_t find_all(const types::entries_t& categories,
                                       bool* exist, uint32_t index_offset = 0u) const;
     
     uint32_t get_random_label_id() const;
+    
+    static uint32_t get_random_label_id(const locator& a, const locator& b);
+    
+    static constexpr uint32_t UNDEFINED_LABEL = ~(uint32_t(0));
 private:
     types::entries_t m_labels;
     types::entries_t m_categories;
@@ -124,8 +131,6 @@ private:
     uint32_t find_label(uint32_t label) const;
     
     types::entries_t full_category(uint32_t category, uint32_t set_empty_labels, bool* exists) const;
-    
-    uint32_t get_random_category_id() const;
     
     void unchecked_add_category(uint32_t category);
     void unchecked_set_category(uint32_t category, uint32_t label, bool is_present, bool create_tmp, const util::bit_array& index);

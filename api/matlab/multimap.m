@@ -239,6 +239,12 @@ classdef multimap
       
       %   GET -- Retrieve value.
       %
+      %     y = get( obj, 'test' ); returns the uint32 value bound to
+      %     'test', or throws an error if 'test' does not exist.
+      %
+      %     y = get( obj, 1 ); returns the char value bound to 1, or throws
+      %     an error if 1 does not exist.
+      %
       %     See also multimap/set
       %
       %     IN:
@@ -256,6 +262,50 @@ classdef multimap
       if ( ~ischar(value) && ~ischar(key) )
         value = reshape( value, size(key) );
       end
+    end
+    
+    function value = tryget(obj, key)
+      
+      %   TRYGET -- Retreive value, or value representing undefined.
+      %
+      %     y = tryget( obj, 'test' ) returns the uint32 value bound to
+      %     'test', if it exists, or else intmax('uint32').
+      %
+      %     y = tryget( obj, 1 ) returns the char value bound to 1, if it
+      %     exists, or else ''.
+      %
+      %     IN:
+      %       - `key` (char, cell array of strings)
+      %     OUT:
+      %       - `value` (uint32)
+      
+      if ( isnumeric(key) )
+        key = uint32( key );
+      end
+      
+      opcode = loc_multimap_opcodes( 'at_or_undefined' );
+      value = loc_multimap_api( opcode, obj.id, key );
+      
+      if ( ~ischar(value) && ~ischar(key) )
+        value = reshape( value, size(key) );
+      end
+    end
+    
+    function obj = remove(obj, keys)
+       
+      %   REMOVE -- Remove key-value pairs by key.
+      %
+      %     remove( obj, 'test1' ) removes the key-value pair associated
+      %     with 'test1'.
+      %
+      %     IN:
+      %       - `keys` (uint32, char, cell array of strings)
+      
+      if ( isnumeric(keys) )
+        keys = uint32( keys );
+      end
+      
+      loc_multimap_api( loc_multimap_opcodes('erase'), obj.id, keys );
     end
     
     function destroy(obj)
@@ -298,7 +348,16 @@ classdef multimap
       end
       
       if ( flip )
+        if ( numel(obj) == 0 )
+          out = containers.Map( 'keytype', 'uint32', 'valuetype', 'char' );
+          return;
+        end
         out = containers.Map( values(obj), keys(obj) );
+        return;
+      end
+      
+      if ( numel(obj) == 0 )
+        out = containers.Map( 'keytype', 'char', 'valuetype', 'uint32' );
         return;
       end
       
@@ -360,10 +419,19 @@ classdef multimap
       
       fprintf( '\n\n' );
     end
+    
+    function out = saveobj(obj)
+      
+      %   SAVEOBJ -- Save as containers.Map.
+      %
+      %     OUT:
+      %       - `out` (containers.Map)
+      
+      out = map( obj );
+    end
   end
   
-  methods (Static = true)
-    
+  methods (Static = true)    
     function out = instances()
       
       %   INSTANCES -- Get ids of all active multimaps.
@@ -405,6 +473,16 @@ classdef multimap
       %       - `keep_ids` (uint32)
       
       multimap.destroysome( setdiff(multimap.instances(), uint32(keep_ids)) );      
+    end
+    
+    function obj = loadobj(m)
+      
+      %   LOADOBJ -- Load from containers.Map.
+      %
+      %     OUT:
+      %       - `obj` (multimap)
+      
+      obj = multimap( m );
     end
   end
 end

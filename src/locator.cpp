@@ -16,7 +16,7 @@
 #define LOC_COMB_FULL_CAT
 #define LOC_FIND_ALL_ONE_CAT_ARRAY
 
-uint32_t util::get_random_id(std::function<bool (const util::locator*, uint32_t)> exists_func, const util::locator* loc)
+uint32_t util::get_random_id(std::function<bool(uint32_t)> exists_func)
 {
     static std::mt19937 random_engine = std::mt19937(std::random_device()());
     
@@ -25,13 +25,7 @@ uint32_t util::get_random_id(std::function<bool (const util::locator*, uint32_t)
     
     uint32_t id = uniform_dist(random_engine);
     
-    //  shouldn't happen (tm)
-    if (loc->n_labels() == int_max)
-    {
-        return 0u;
-    }
-    
-    while (exists_func(loc, id))
+    while (exists_func(id) || id == util::locator::UNDEFINED_LABEL)
     {
         id = uniform_dist(random_engine);
     }
@@ -286,11 +280,11 @@ util::types::find_all_return_t util::locator::find_all(const types::entries_t& c
     types::entries_t* full_categories_ptr = full_categories.unsafe_get_pointer();
     
     //  fill empty spaces in categories with this label
-    uint32_t rand_lab = get_random_label_id();
+    uint32_t undf_lab = util::locator::UNDEFINED_LABEL;
     
     for (uint32_t i = 0; i < n_cats_in; i++)
     {
-        full_categories_ptr[i] = full_category(cat_ptr[i], rand_lab, exist);
+        full_categories_ptr[i] = full_category(cat_ptr[i], undf_lab, exist);
         
         if (!(*exist))
         {
@@ -363,186 +357,6 @@ util::types::find_all_return_t util::locator::find_all(const types::entries_t& c
     
     return result;
 }
-
-#ifdef LOC_COMB_FULL_CAT
-
-util::types::entries_t util::locator::combinations(const types::entries_t& categories, bool* exist) const
-{
-    using namespace util;
-    
-    using arr_arr_t = dynamic_array<types::entries_t, dynamic_allocator<types::entries_t>>;
-    
-    types::entries_t result;
-    
-    uint32_t n_cats_in = categories.tail();
-    
-    *exist = true;
-    
-    if (n_cats_in == 0)
-    {
-        return result;
-    }
-    
-    uint32_t* cat_ptr = categories.unsafe_get_pointer();
-    
-    arr_arr_t full_categories(n_cats_in);
-    types::entries_t* full_categories_ptr = full_categories.unsafe_get_pointer();
-    
-    for (uint32_t i = 0; i < n_cats_in; i++)
-    {
-        full_categories_ptr[i] = full_category(cat_ptr[i], exist);
-        
-        if (!(*exist))
-        {
-            return result;
-        }
-        
-        if (full_categories_ptr[i].tail() == 0)
-        {
-            return result;
-        }
-    }
-    
-    uint32_t sz = size();
-    
-    std::string hash_code;
-    std::unordered_map<std::string, uint32_t> combination_exists;
-    
-    result.resize(2048);
-    result.seek_tail_to_start();
-    
-    for (uint32_t i = 0; i < sz; i++)
-    {
-        for (uint32_t j = 0; j < n_cats_in; j++)
-        {
-            uint32_t* full_cat = full_categories_ptr[j].unsafe_get_pointer();
-            hash_code += std::to_string(full_cat[i]);
-            hash_code += "A";
-        }
-        
-        auto c_it = combination_exists.find(hash_code);
-        bool c_exists = c_it != combination_exists.end();
-        
-        if (!c_exists)
-        {
-            for (uint32_t j = 0; j < n_cats_in; j++)
-            {
-                uint32_t* full_cat = full_categories_ptr[j].unsafe_get_pointer();
-                result.push(full_cat[i]);
-            }
-        }
-        hash_code.clear();
-    }
-    
-    return result;
-}
-
-#else
-
-util::types::entries_t util::locator::combinations(const types::entries_t& categories, bool* exist) const
-{
-    
-    types::entries_t result;
-    
-    uint32_t n_cats_in = categories.tail();
-    
-    *exist = true;
-    
-    if (n_cats_in == 0 || m_n_labels == 0)
-    {
-        return result;
-    }
-    
-    util::types::entries_t all_labs;
-    util::dynamic_array<util::bit_array::iterator> indices_it(1024);
-    indices_it.seek_tail_to_start();
-    
-    uint32_t* category_ptr = categories.unsafe_get_pointer();
-    
-    for (uint32_t i = 0; i < n_cats_in; i++)
-    {
-        auto it = m_by_category.find(category_ptr[i]);
-        
-        if (it == m_by_category.end())
-        {
-            *exist = false;
-            return result;
-        }
-        
-        const types::entries_t& labs = it->second;
-        uint32_t* lab_ptr = labs.unsafe_get_pointer();
-        uint32_t n_labs = labs.tail();
-        
-        if (n_labs == 0)
-        {
-            return result;
-        }
-        
-        for (uint32_t j = 0; j < n_labs; j++)
-        {
-            uint32_t lab = lab_ptr[j];
-            const util::bit_array& index = m_indices.at(lab);
-            indices_it.push(index.begin());
-            all_labs.push(lab);
-        }
-    }
-    
-    uint32_t sz = size();
-    uint32_t n_labs = indices_it.tail();
-    
-    util::bit_array::iterator* iters = indices_it.unsafe_get_pointer();
-    
-    std::string hash_code(n_labs, 'a');
-    std::unordered_map<std::string, uint8_t> combination_exists;
-    char* hash_code_ptr = &hash_code[0];
-    
-    types::entries_t label_row(n_cats_in);
-    uint32_t* label_row_ptr = label_row.unsafe_get_pointer();
-    
-    uint32_t* all_labs_ptr = all_labs.unsafe_get_pointer();
-    
-    for (uint32_t i = 0; i < sz; i++)
-    {
-        uint32_t row_stp = 0;
-        
-        for (uint32_t j = 0; j < n_labs; j++)
-        {
-            if (iters[j].value())
-            {
-                hash_code_ptr[j] = '1';
-                label_row_ptr[row_stp++] = all_labs_ptr[j];
-            }
-            else
-            {
-                hash_code_ptr[j] = '0';
-            }
-            
-            iters[j].next();
-        }
-        
-        //  if this is not a complete row, it is not a valid combination
-        if (row_stp != n_cats_in)
-        {
-            continue;
-        }
-        
-        bool c_exists = combination_exists.find(hash_code) != combination_exists.end();
-        
-        if (!c_exists)
-        {
-            for (uint32_t j = 0; j < n_cats_in; j++)
-            {
-                result.push(label_row_ptr[j]);
-            }
-            
-            combination_exists[hash_code] = 0;
-        }
-    }
-    
-    return result;
-}
-
-#endif
 
 uint32_t util::locator::add_category(uint32_t category)
 {
@@ -635,6 +449,11 @@ uint32_t util::locator::set_category(uint32_t category, uint32_t label, const ut
     if (!has_category(category))
     {
         return util::locator_status::CATEGORY_DOES_NOT_EXIST;
+    }
+    
+    if (label == locator::UNDEFINED_LABEL)
+    {
+        return util::locator_status::IS_UNDEFINED_LABEL;
     }
     
     bool is_present = has_label(label);
@@ -1159,6 +978,82 @@ bool util::locator::is_full_category(uint32_t category, bool *exists) const
     return sum == c_size;
 }
 
+uint32_t util::locator::swap_label(uint32_t from, uint32_t to)
+{
+    if (!has_label(from))
+    {
+        return locator_status::LABEL_DOES_NOT_EXIST;
+    }
+    
+    if (has_label(to))
+    {
+        return locator_status::LABEL_EXISTS;
+    }
+    
+    //  update in category
+    uint32_t category = m_in_category.at(from);
+    m_in_category[to] = category;
+    m_in_category.erase(from);
+    
+    //  update by category
+    types::entries_t& by_cat = m_by_category.at(category);
+    
+    uint32_t idx_in_by_cat;
+    util::unchecked_binary_search(by_cat.unsafe_get_pointer(), by_cat.tail(), from, &idx_in_by_cat);
+    
+    by_cat.erase(idx_in_by_cat);
+    by_cat.push(to);
+    by_cat.unchecked_sort(by_cat.tail());
+    
+    //  update indices
+    m_indices[to] = std::move(m_indices.at(from));
+    m_indices.erase(from);
+    
+    //  update labels
+    uint32_t idx_in_labs;
+    util::unchecked_binary_search(m_labels.unsafe_get_pointer(), m_n_labels, from, &idx_in_labs);
+    m_labels.erase(idx_in_labs);
+    m_labels.push(to);
+    m_labels.unchecked_sort(m_n_labels);
+    
+    return locator_status::OK;
+}
+
+uint32_t util::locator::swap_category(uint32_t from, uint32_t to)
+{
+    if (!has_category(from))
+    {
+        return locator_status::CATEGORY_DOES_NOT_EXIST;
+    }
+    
+    if (has_category(to))
+    {
+        return locator_status::CATEGORY_EXISTS;
+    }
+    
+    const types::entries_t& by_cat = m_by_category.at(from);
+    
+    uint32_t n_in_cat = by_cat.tail();
+    uint32_t* by_cat_ptr = by_cat.unsafe_get_pointer();
+    
+    for (uint32_t i = 0; i < n_in_cat; i++)
+    {
+        m_in_category[by_cat_ptr[i]] = to;
+    }
+    
+    m_by_category[to] = std::move(by_cat);
+    m_by_category.erase(from);
+    
+    uint32_t idx_in_categories;
+    util::unchecked_binary_search(m_categories.unsafe_get_pointer(), m_categories.tail(), from, &idx_in_categories);
+    
+    m_categories.erase(idx_in_categories);
+    m_categories.push(to);
+    m_categories.unchecked_sort(m_categories.tail());
+    
+    return locator_status::OK;
+}
+
 uint32_t util::locator::find_label(uint32_t label, bool *was_found) const
 {
     uint32_t idx;
@@ -1193,10 +1088,28 @@ uint32_t util::locator::find_category(uint32_t category) const
 
 uint32_t util::locator::get_random_label_id() const
 {
-    return util::get_random_id(&util::locator::has_label, this);
+    //  shouldn't happen
+    if (m_n_labels == ~(uint32_t(0)))
+    {
+        return 0u;
+    }
+    
+    return util::get_random_id(std::bind(&util::locator::has_label, this, std::placeholders::_1));
 }
 
-uint32_t util::locator::get_random_category_id() const
+uint32_t util::locator::get_random_label_id(const util::locator &a, const util::locator &b)
 {
-    return util::get_random_id(&util::locator::has_category, this);
+    uint32_t int_max = ~(uint32_t(0));
+    
+    //  shouldn't happen
+    if (a.m_n_labels == int_max || b.m_n_labels == int_max)
+    {
+        return 0u;
+    }
+    
+    auto func = [&a, &b] (uint32_t id) -> bool {
+        return a.has_label(id) || b.has_label(id);
+    };
+    
+    return util::get_random_id(func);
 }

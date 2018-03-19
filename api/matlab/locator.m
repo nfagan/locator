@@ -254,6 +254,18 @@ classdef locator
       N = loc_nlabs( obj.id );
     end
     
+    function N = ncats(obj)
+      
+      %   NCATS -- Get the number of categories in the locator.
+      %
+      %     See also locator/count, locator/getlabs, locator/find
+      %
+      %     OUT:
+      %       - `N` (uint32)
+      
+      N = numel( getcats(obj) );
+    end
+    
     function obj = addcat(obj, category)
       
       %   ADDCAT -- Add a category or categories to the locator.
@@ -338,6 +350,38 @@ classdef locator
       %       - `lab` (uint32)
       
       lab = loc_randlab( obj.id );     
+    end
+    
+    function obj = swaplab(obj, from, to)
+      
+      %   SWAPLAB -- Change an existing label code to a new one.
+      %
+      %     An error is thrown if outgoing label does not exist, or if the
+      %     incoming label already exists.
+      %
+      %     See also locator/locator, locator/swapcat
+      %
+      %     IN:
+      %       - `from` (uint32)
+      %       - `to` (uint32)
+      
+      loc_api( loc_opcodes('swap_lab'), obj.id, uint32(from), uint32(to) );      
+    end
+    
+     function obj = swapcat(obj, from, to)
+      
+      %   SWAPCAT -- Change an existing category code to a new one.
+      %
+      %     An error is thrown if outgoing category does not exist, or if
+      %     the incoming category already exists.
+      %
+      %     See also locator/locator, locator/swaplab
+      %
+      %     IN:
+      %       - `from` (uint32)
+      %       - `to` (uint32)
+      
+      loc_api( loc_opcodes('swap_cat'), obj.id, uint32(from), uint32(to) );      
     end
     
     function cats = whichcat(obj, labels)
@@ -507,8 +551,10 @@ classdef locator
       
       if ( nargin < 3 )
         lab_map = multimap();
+        created_map = true;
       else
         assert( isa(lab_map, 'multimap'), 'Label map must be multimap.' );
+        created_map = false;
       end
       
       assert( iscellstr(strs), 'Labels must be cell array of strings.' );
@@ -516,7 +562,7 @@ classdef locator
       strs = strs(:);      
       unqs = unique( strs );
       n = numel( unqs );
-      full_cat = zeros( numel(unqs), 1, 'uint32' );
+      full_cat = zeros( numel(strs), 1, 'uint32' );
       
       for i = 1:n
         lab_int = randlab( obj );
@@ -524,6 +570,10 @@ classdef locator
         ind = strcmp( strs, lab_str );
         full_cat(ind) = lab_int;
         set( lab_map, lab_str, lab_int );
+      end
+      
+      if ( nargout < 2 && created_map )
+        destroy( lab_map );
       end
     end
     
@@ -760,7 +810,7 @@ classdef locator
         if ( desktop_exists )
           fprintf( '\n  %s<strong>%d</strong>:', cat_space, c_cat );
         else
-          fprintf( '\n  Ts%d:', cat_space, c_cat );
+          fprintf( '\n  %s%d:', cat_space, c_cat );
         end
         
         lab_str = strjoin( arrayfun(@num2str, labs(1:n_disp), 'un', false), ', ' );
@@ -788,6 +838,7 @@ classdef locator
       
       s = loc_struct( obj.id );
     end
+    
     
     function [dbl, cats] = double(obj)
       
@@ -820,20 +871,40 @@ classdef locator
       [categ, cats] = double( obj );
       categ = categorical( categ );
     end
+    
+    function out = saveobj(obj)
+      
+      %   SAVEOBJ -- Save as struct.
+      %
+      %     OUT:
+      %       - `out` (struct)
+      
+      out = gather( obj );
+    end
   end 
   
   methods (Static = true)
-    function varargout = from(loc_convertible)
+    function varargout = from(varargin)
       
-      %   FROM -- Create locator from compatible source.
+      %   FROM -- Convert to locator from compatible source.
       %
       %     See also loc_from, locator/locator
       
-      [varargout{1:nargout}] = loc_from( loc_convertible );
+      [varargout{1:nargout}] = loc_from( varargin{:} );
 
       if ( ~isa(varargout{1}, 'locator') )
         varargout{1} = locator( varargout{1} );
       end
+    end
+    
+    function obj = loadobj(s)
+      
+      %   LOADOBJ -- Load from struct.
+      %
+      %     OUT:
+      %       - `obj` (locator)
+      
+      obj = locator.from( s );
     end
     
     function loc = with(cat, label, index)
@@ -855,6 +926,19 @@ classdef locator
       loc = locator();
       addcat( loc, cat );
       setcat( loc, cat, label, index );
+    end
+    
+    function lab = randlab2(A, B)
+      
+      %   RANDLAB2 -- Get a label that does not exist between two locators.
+      %
+      %     IN:
+      %       - `A` (locator)
+      %       - `B` (locator)
+      %     OUT:
+      %       - `lab` (uint32)
+      
+      lab = loc_randlab2( A.id, B.id );
     end
     
     function out = instances(varargin)

@@ -15,17 +15,7 @@ if ( numel(categories) == 1 )
   return;
 end
 
-op_code = loc_opcodes( 'combinations' );
-
-cmbs = loc_api( op_code, loc, uint32(categories) );
-
-if ( isempty(cmbs) )
-  return;
-end
-
-n_cats = numel( categories );
-
-cmbs = reshape( cmbs, n_cats, numel(cmbs) / n_cats );
+[~, cmbs] = loc_findall( loc, categories );
 
 end
 

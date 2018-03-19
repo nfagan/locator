@@ -1,4 +1,4 @@
-function varargout = loc_from(loc_convertible)
+function varargout = loc_from(varargin)
 
 %   LOC_FROM -- Convert to locator object.
 %
@@ -6,6 +6,10 @@ function varargout = loc_from(loc_convertible)
 %       - `loc_convertible` (struct, SparseLabels)
 %     OUT:
 %       - `varargout` (uint32)
+
+narginchk( 1, 2 );
+
+loc_convertible = varargin{1};
 
 if ( isa(loc_convertible, 'SparseLabels') )
   [loc, out_cats, out_labs] = from_sparse_labels( loc_convertible );
@@ -29,7 +33,93 @@ if ( isa(loc_convertible, 'struct') )
   end
 end
 
+if ( isa(loc_convertible, 'cell') || isa(loc_convertible, 'categorical') )
+  if ( nargin == 1)
+    error( ['If converting from a cell array of strings or categorical array' ...
+      , ' provide category names for the columns of the array as a second input.'] );
+  end
+  
+  narginchk( 2, 2 );
+  
+  [loc, out_cats, out_labs] = from_cellstr( cellstr(loc_convertible) ...
+    , cellstr(varargin{2}) );
+  
+  varargout{1} = loc;
+  varargout{2} = out_cats;
+  varargout{3} = out_labs;
+  
+  return;
+end
+
 error( 'Cannot convert to locator from object of type "%s".', class(loc_convertible) );
+
+end
+
+function [loc, out_cats, out_labs] = from_cellstr(mat, cats)
+
+assert( ismatrix(mat), 'Cell array of strings must be a 2-d matrix.' );
+assert( size(mat, 2) == numel(cats), 'Expected %d category names; %d were given.' ...
+  , size(mat, 2), numel(cats) );
+
+assert( iscellstr(mat) && iscellstr(cats), 'Cell inputs must be cell array of strings.' );
+
+c_loc_instances = locator.instances();
+c_m_instances = multimap.instances();
+
+try
+
+  loc = locator();
+  out_cats = multimap();
+  out_labs = multimap();
+
+  lab_stp = 1;
+
+  N = size( mat, 2 );
+
+  for i = 1:N
+    if ( i > 1 && contains(out_cats, cats{i}) )
+      error( 'Category names must be unique.' );
+    end
+
+    if ( numel(cats{i}) == 0 )
+      error( 'Category name cannot be empty.' );
+    end
+
+    curr = mat(:, i);
+    unqs = unique( curr );
+
+    initcat( loc, i, randlab(loc), size(curr, 1) );
+
+    set( out_cats, cats{i}, i );
+
+    for j = 1:numel(unqs)
+      ind = strcmp( curr, unqs{j} );
+      
+      if ( numel(unqs{j}) == 0 )
+        error( 'Label cannot be empty.' );
+      end
+
+      setcat( loc, i, lab_stp, ind );
+
+      if ( contains(out_labs, unqs{j}) )
+
+        other_cat = get( out_cats, whichcat(loc, out_labs(unqs{j})) );
+
+        error( 'The label "%s" was already present in category "%s".' ...
+          , unqs{j}, other_cat );
+      end
+
+      set( out_labs, unqs{j}, lab_stp );
+
+      lab_stp = lab_stp + 1;
+    end
+  end
+catch err
+  locator.destroyexcept( c_loc_instances );
+  multimap.destroyexcept( c_m_instances );
+  throw( err );
+end
+
 
 end
 
@@ -46,29 +136,52 @@ for i = 1:numel(fields)
   end
 end
 
-loc = locator();
-out_cats = multimap();
-out_labs = multimap();
+c_loc_instances = locator.instances();
+c_m_instances = multimap.instances();
 
-lab_stp = 1;
+try
+  loc = locator();
+  out_cats = multimap();
+  out_labs = multimap();
 
-for i = 1:numel(fields)
-  curr = loc_convertible.(fields{i});
-  unqs = unique( curr );
+  lab_stp = 1;
 
-  initcat( loc, i, randlab(loc), size(curr, 1) );
+  for i = 1:numel(fields)
+    curr = loc_convertible.(fields{i});
+    unqs = unique( curr );
 
-  set( out_cats, fields{i}, i );
+    initcat( loc, i, randlab(loc), size(curr, 1) );
 
-  for j = 1:numel(unqs)
-    ind = strcmp( curr, unqs{j} );
+    set( out_cats, fields{i}, i );
 
-    setcat( loc, i, lab_stp, ind );
-    
-    set( out_labs, unqs{j}, lab_stp );
+    for j = 1:numel(unqs)
+      ind = strcmp( curr, unqs{j} );
 
-    lab_stp = lab_stp + 1;
+      setcat( loc, i, lab_stp, ind );
+
+      if ( contains(out_labs, unqs{j}) )
+
+        other_cat = get( out_cats, whichcat(loc, out_labs(unqs{j})) );
+
+        destroy( loc );
+        destroy( out_cats );
+        destroy( out_labs );
+
+        error( 'The label "%s" was already present in category "%s".' ...
+          , unqs{j}, other_cat );
+      end
+
+      set( out_labs, unqs{j}, lab_stp );
+
+      lab_stp = lab_stp + 1;
+    end
   end
+
+catch err 
+  locator.destroyexcept( c_loc_instances );
+  locator.destroyexcept( c_m_instances );
+  
+  throw( err );
 end
 
 end

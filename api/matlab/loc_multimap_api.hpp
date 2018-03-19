@@ -18,8 +18,13 @@ namespace util {
     void destroy(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     void copy(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     
+    void erase(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     void insert(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     void at(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
+    void at_or_undefined(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
+    
+    void at_helper(mxArray* plhs[], const util::loc_multimap_t& c_multimap,
+        const mxArray* key_arr, bool allow_undefined);
     
     void size(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     

@@ -678,4 +678,18 @@ bool util::bit_array::iterator::value() const
     return m_data[m_bin] & (1u << m_bit);
 }
 
+void util::bit_array::iterator::set(bool value)
+{
+    uint32_t val = 1u << m_bit;
+    
+    if (value)
+    {
+        m_data[m_bin] |= val;
+    }
+    else
+    {
+        m_data[m_bin] &= ~val;
+    }
+}
+
 

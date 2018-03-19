@@ -36,6 +36,9 @@ public:
     V at(K key) const;
     K at(V key) const;
     
+    size_t erase(K key);
+    size_t erase(V key);
+    
     size_t size() const;
     
     bool contains(K key) const;
@@ -167,6 +170,40 @@ std::vector<V> util::multimap<K, V>::values() const
     }
     
     return res;
+}
+
+template<typename K, typename V>
+size_t util::multimap<K, V>::erase(K key)
+{
+    auto it = m_kv.find(key);
+    
+    if (it == m_kv.end())
+    {
+        return 0;
+    }
+    
+    m_vk.erase(it->second);
+    
+    m_kv.erase(key);
+    
+    return 1;
+}
+
+template<typename K, typename V>
+size_t util::multimap<K, V>::erase(V key)
+{
+    auto it = m_vk.find(key);
+    
+    if (it == m_vk.end())
+    {
+        return 0;
+    }
+    
+    m_kv.erase(it->second);
+    
+    m_vk.erase(key);
+    
+    return 1;
 }
 
 template<typename K, typename V>

@@ -5,6 +5,8 @@
 #include <cstdint>
 #include <functional>
 
+void test_swap_category();
+void test_swap_label();
 void test_combinations();
 void test_resize();
 void test_append();
@@ -41,6 +43,8 @@ int main(int argc, char* argv[])
     std::cout << "BEGIN LOCATOR" << std::endl;
     using util::profile::simple;
     
+    test_swap_label();
+    test_swap_category();
     test_combinations();
     test_resize();
     test_set_category_mult_labels();
@@ -88,6 +92,92 @@ util::bit_array get_randomly_filled_array(uint32_t sz, uint32_t n_true)
     return arr;
 }
 
+void test_swap_category()
+{
+    using namespace util;
+    
+    locator loc;
+    
+    loc.require_category(0);
+    
+    uint32_t res = loc.swap_category(1, 2);
+    
+    assert(res == locator_status::CATEGORY_DOES_NOT_EXIST);
+    
+    res = loc.swap_category(0, 1);
+    
+    assert(res == locator_status::OK);
+    
+    assert(loc.n_categories() == 1);
+    assert(loc.has_category(1));
+    assert(!loc.has_category(0));
+    
+    loc.set_category(1, 2, bit_array(100, true));
+    
+    assert(loc.find(2).tail() == 100);
+    
+    loc.set_category(1, 3, get_randomly_filled_array(100, 20));
+    
+    res = loc.swap_category(1, 3);
+    
+    bool exists;
+    uint32_t cat = loc.which_category(2, &exists);
+    
+    assert(exists);
+    assert(cat == 3);
+    
+    cat = loc.which_category(3, &exists);
+    assert(exists);
+    assert(cat == 3);
+}
+
+void test_swap_label()
+{
+    using namespace util;
+    
+    locator loc;
+    
+    loc.require_category(0);
+    loc.set_category(0, 1, bit_array(100, true));
+    
+    bit_array idx2 = get_randomly_filled_array(100, 20);
+    
+    loc.set_category(0, 2, idx2);
+    
+    loc.require_category(1);
+    loc.set_category(1, 3, bit_array(100, true));
+    
+    uint32_t res = loc.swap_label(10, 20);
+    
+    assert(res == locator_status::LABEL_DOES_NOT_EXIST);
+    
+    res = loc.swap_label(2, 3);
+    
+    assert(res == locator_status::LABEL_EXISTS);
+    
+    res = loc.swap_label(2, 4);
+    
+    assert(res == locator_status::OK);
+    
+    auto inds = loc.find(4);
+    auto labs = loc.get_labels();
+    
+    assert(inds.tail() == idx2.sum());
+    
+    assert(contains(labs.unsafe_get_pointer(), labs.tail(), 4u));
+    assert(!contains(labs.unsafe_get_pointer(), labs.tail(), 2u));
+    
+    bool exists;
+    uint32_t new_cat = loc.which_category(4u, &exists);
+    
+    assert(exists);
+    assert(new_cat == 0);
+    
+    new_cat = loc.which_category(2u, &exists);
+    assert(!exists);
+    
+}
+
 void test_combinations()
 {
     using namespace util;
@@ -111,10 +201,10 @@ void test_combinations()
     
     bool exists;
     
-    auto res = loc.combinations(cats, &exists);
+    auto res = loc.find_all(cats, &exists);
     
     assert(exists);
-    assert(res.tail() == 2);
+    assert(res.combinations.tail() == 2);
     
     //
     //
@@ -135,26 +225,21 @@ void test_combinations()
     cats2.push(0);
     cats2.push(1);
     
-    res = loc2.combinations(cats2, &exists);
+    res = loc2.find_all(cats2, &exists);
     
     assert(exists);
-    assert(res.tail() == 0);
+    assert(res.combinations.tail() == 0);
     
     loc2.set_category(0, 2, index3);
     
 //    loc2.set_category(1, 3, index2);
     loc2.set_category(1, 4, index3);
     
-    res = loc2.combinations(cats2, &exists);
+    res = loc2.find_all(cats2, &exists);
     
     assert(exists);
     
-    for (uint32_t i = 0; i < res.tail(); i++)
-    {
-        std::cout << res.at(i) << std::endl;
-    }
-    
-    assert(res.tail() == 4);
+    assert(res.combinations.tail() == 4);
     
 }
 
