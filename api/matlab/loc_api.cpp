@@ -59,6 +59,7 @@ void util::init_locator_functions()
     globals::funcs[ops::GET_RANDOM_LABEL2] =        &util::get_random_label2;
     globals::funcs[ops::SWAP_LABEL] =               &util::swap_label;
     globals::funcs[ops::SWAP_CATEGORY] =            &util::swap_category;
+    globals::funcs[ops::KEEP_EACH] =                &util::keep_each;
     
     globals::INITIALIZED = true;
     
@@ -636,6 +637,65 @@ void util::which_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *pr
     }
     
     plhs[0] = make_entries_into_array(res, n_els);
+}
+
+void util::keep_each(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+{
+    using namespace util;
+    
+    const char* func_id = "locator:keep_each";
+    
+    assert_nrhs(nrhs, 3, func_id);
+    assert_nlhs(nlhs, 2, func_id);
+    
+    assert_scalar(prhs[1], func_id, "Id must be scalar.");
+    
+    locator& c_locator = get_locator(mxGetScalar(prhs[1]));
+    
+    const mxArray* in_cats = prhs[2];
+    uint32_t n_in_cats = mxGetNumberOfElements(in_cats);
+    
+    const types::entries_t in_cats_entries = copy_array_into_entries(in_cats, n_in_cats);
+    
+    bool exists;
+    uint32_t index_offset = 1u;
+    
+    const types::find_all_return_t res = c_locator.keep_each(in_cats_entries, 
+            &exists, index_offset);
+    
+    if (!exists)
+    {
+        mexErrMsgIdAndTxt(func_id, "Category does not exist.");
+        return;
+    }
+    
+    const uint32_t n_combs = res.combinations.tail();
+    
+    if (n_combs == 0)
+    {
+        plhs[0] = mxCreateCellMatrix(1, 0);
+        plhs[1] = mxCreateUninitNumericMatrix(0, n_in_cats, mxUINT32_CLASS, mxREAL);
+        return;
+    }
+    
+    uint32_t n_indices = res.indices.tail();
+    
+    mxArray* all_indices = mxCreateCellMatrix(1, n_indices);
+    
+    types::entries_t* res_indices_ptr = res.indices.unsafe_get_pointer();
+    
+    for (uint32_t i = 0; i < n_indices; i++)
+    {
+        const types::entries_t& one_combination_inds = res_indices_ptr[i];
+        
+        mxArray* one_combination_arr = make_entries_into_array(one_combination_inds, 
+                one_combination_inds.tail());
+        
+        mxSetCell(all_indices, i, one_combination_arr);
+    }
+    
+    plhs[0] = all_indices;
+    plhs[1] = make_entries_into_array(res.combinations, n_combs);
 }
 
 void util::keep(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])

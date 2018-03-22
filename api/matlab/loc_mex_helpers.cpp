@@ -20,6 +20,13 @@ util::types::entries_t util::copy_array_into_entries(const mxArray* src, uint32_
     return result;
 }
 
+util::types::entries_t util::copy_array_into_entries(const mxArray* src)
+{
+    uint32_t n_els = mxGetNumberOfElements(src);
+    
+    return util::copy_array_into_entries(src, n_els);
+}
+
 mxArray* util::make_entries_into_array(const types::entries_t& src, uint32_t n_copy)
 {
     mxArray* out = mxCreateUninitNumericMatrix(n_copy, 1, mxUINT32_CLASS, mxREAL);

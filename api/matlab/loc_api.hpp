@@ -42,6 +42,7 @@ namespace util {
     void get_random_label2(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     
     void keep(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
+    void keep_each(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
     void append(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
             
     void has_category(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);

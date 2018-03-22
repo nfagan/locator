@@ -358,6 +358,185 @@ util::types::find_all_return_t util::locator::find_all(const types::entries_t& c
     return result;
 }
 
+//  keep_each: Keep one row for each subset of label combinations.
+
+util::types::find_all_return_t util::locator::keep_each(const types::entries_t& categories, bool *exist, uint32_t index_offset)
+{
+    util::types::find_all_return_t res = find_all(categories, exist, index_offset);
+    
+    if (!exist)
+    {
+        return res;
+    }
+    
+    uint32_t n_indices = res.indices.tail();
+    uint32_t total_sz = n_indices;
+    uint32_t n_cats_in = categories.tail();
+    uint32_t* in_cat_ptr = categories.unsafe_get_pointer();
+    
+    types::entries_t remaining_categories = m_categories;
+    
+    //  determine which additional categories we'll have to draw labels from
+    for (uint32_t i = 0; i < n_cats_in; i++)
+    {
+        uint32_t* remaining_cats_ptr = remaining_categories.unsafe_get_pointer();
+        
+        uint32_t idx_in_remaining_cats;
+        util::unchecked_binary_search(remaining_cats_ptr, remaining_categories.tail(), in_cat_ptr[i], &idx_in_remaining_cats);
+        
+        remaining_categories.erase(idx_in_remaining_cats);
+    }
+    
+    uint32_t n_remaining_cats = remaining_categories.tail();
+    uint32_t* remaining_cats_ptr = remaining_categories.unsafe_get_pointer();
+    
+    types::entries_t* raw_inds = res.indices.unsafe_get_pointer();
+    uint32_t* raw_combs = res.combinations.unsafe_get_pointer();
+    
+    util::locator copy = *this;
+    
+    //  resize indices to total size
+    for (auto& it : copy.m_indices)
+    {
+        it.second.resize(total_sz);
+        it.second.fill(false);
+    }
+    
+    copy.m_tmp_index.resize(total_sz);
+    
+    //  mapping category to collapsed id.
+    std::unordered_map<uint32_t, uint32_t> collapsed_labels;
+    
+    for (uint32_t i = 0; i < n_indices; i++)
+    {
+        //  for the inputted categories, we can just copy the
+        //  combinations
+        uint32_t* c_indices = raw_inds[i].unsafe_get_pointer();
+        uint32_t c_n_indices = raw_inds[i].tail();
+        
+        for (uint32_t j = 0; j < n_cats_in; j++)
+        {
+            uint32_t lab = raw_combs[i * n_cats_in + j];
+            
+            copy.m_indices[lab].place(true, i);
+        }
+        
+        //  for the other categories, we have to see which label
+        //  to use for each index
+        for (uint32_t j = 0; j < n_remaining_cats; j++)
+        {
+            
+            uint32_t c_cat = remaining_cats_ptr[j];
+            
+            //  other labels in the current category
+            const types::entries_t& other_labs = copy.m_by_category[c_cat];
+            
+            uint32_t n_other_labs = other_labs.tail();
+            
+            if (n_other_labs == 0)
+            {
+                continue;
+            }
+            
+            if (n_other_labs == 1)
+            {
+                util::bit_array& other_idx = copy.m_indices[other_labs.at(0)];
+                
+                other_idx.place(true, i);
+                
+                continue;
+            }
+            
+            //  otherwise, we have to determine whether to collapse the
+            //  labels at these indices
+            
+            uint32_t* other_labs_ptr = other_labs.unsafe_get_pointer();
+            
+            // find the label at the first index
+            
+            uint32_t first_lab = util::locator::UNDEFINED_LABEL;
+            
+            for (uint32_t k = 0; k < n_other_labs; k++)
+            {
+                uint32_t c_lab = other_labs_ptr[k];
+                
+                const util::bit_array& lab_idx = m_indices.at(c_lab);
+                
+                if (lab_idx.at(c_indices[0] - index_offset))
+                {
+                    first_lab = c_lab;
+                    break;
+                }
+            }
+            
+            bool proceed = true;
+            bool need_collapse = false;
+            uint32_t k = 1;
+            const util::bit_array& lab_idx = m_indices.at(first_lab);
+            
+            while (proceed && k < c_n_indices)
+            {
+                if (!lab_idx.at(c_indices[k] - index_offset))
+                {
+                    need_collapse = true;
+                    proceed = false;
+                }
+                
+                k++;
+            }
+            
+            uint32_t set_lab;
+            
+            if (need_collapse)
+            {
+                auto collapsed_it = collapsed_labels.find(c_cat);
+                
+                uint32_t collapsed_lab;
+                
+                //  we need to insert a new collapsed label
+                if (collapsed_it == collapsed_labels.end())
+                {
+                    collapsed_lab = copy.get_random_label_id();
+                    collapsed_labels[c_cat] = collapsed_lab;
+                    
+                    copy.m_labels.push(collapsed_lab);
+                    copy.m_in_category[collapsed_lab] = c_cat;
+                    copy.m_indices[collapsed_lab] = util::bit_array(total_sz, false);
+                    
+                    util::types::entries_t& by_cat = copy.m_by_category[c_cat];
+                    
+                    by_cat.push(collapsed_lab);
+                    
+                    copy.m_n_labels++;
+                    
+                    by_cat.sort();
+                    copy.m_labels.sort();
+                }
+                else
+                {
+                    collapsed_lab = collapsed_it->second;
+                }
+                
+                set_lab = collapsed_lab;
+            }
+            else
+            {
+                set_lab = first_lab;
+            }
+        
+            util::bit_array& c_idx = copy.m_indices.at(set_lab);
+            
+            c_idx.place(true, i);
+        }
+    }
+    
+    copy.prune();
+    
+    *this = std::move(copy);
+    
+    return res;
+}
+
 uint32_t util::locator::add_category(uint32_t category)
 {
     if (has_category(category))
@@ -1052,6 +1231,35 @@ uint32_t util::locator::swap_category(uint32_t from, uint32_t to)
     m_categories.unchecked_sort(m_categories.tail());
     
     return locator_status::OK;
+}
+
+//  rm_label: Remove label.
+//
+//      No modifications occur if the label is not present.
+
+void util::locator::rm_label(uint32_t lab)
+{
+    size_t n_erased = m_indices.erase(lab);
+    
+    if (n_erased == 0)
+    {
+        return;
+    }
+    
+    uint32_t cat = m_in_category[lab];
+    
+    util::types::entries_t& by_category = m_by_category[cat];
+    uint32_t* by_category_ptr = by_category.unsafe_get_pointer();
+    
+    uint32_t idx_in_by_category;
+    
+    util::unchecked_binary_search(by_category_ptr, by_category.tail(), lab, &idx_in_by_category);
+    
+    by_category.erase(idx_in_by_category);
+    m_labels.erase(find_label(lab));
+    m_in_category.erase(lab);
+    
+    m_n_labels--;
 }
 
 uint32_t util::locator::find_label(uint32_t label, bool *was_found) const

@@ -67,6 +67,9 @@ public:
     void unchecked_keep(const util::types::entries_t& at_indices, int32_t index_offset = 0);
     uint32_t keep(const util::types::entries_t& at_indices);
     
+    types::find_all_return_t keep_each(const types::entries_t& categories,
+                                        bool* exist, uint32_t index_offset = 0u);
+    
     void clear();
     void empty();
     void resize(uint32_t to_size);
@@ -131,6 +134,8 @@ private:
     uint32_t find_label(uint32_t label) const;
     
     types::entries_t full_category(uint32_t category, uint32_t set_empty_labels, bool* exists) const;
+    
+    void rm_label(uint32_t label);
     
     void unchecked_add_category(uint32_t category);
     void unchecked_set_category(uint32_t category, uint32_t label, bool is_present, bool create_tmp, const util::bit_array& index);

@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <functional>
 
+void test_keep_each();
 void test_swap_category();
 void test_swap_label();
 void test_combinations();
@@ -43,6 +44,7 @@ int main(int argc, char* argv[])
     std::cout << "BEGIN LOCATOR" << std::endl;
     using util::profile::simple;
     
+    test_keep_each();
     test_swap_label();
     test_swap_category();
     test_combinations();
@@ -92,6 +94,41 @@ util::bit_array get_randomly_filled_array(uint32_t sz, uint32_t n_true)
     return arr;
 }
 
+void test_keep_each()
+{
+    using namespace util;
+    
+    locator loc;
+    
+    loc.require_category(0);
+    loc.require_category(1);
+    loc.require_category(2);
+    
+    uint32_t sz = 4000;
+    
+    loc.set_category(0, 1, bit_array(sz, true));
+    loc.set_category(0, 2, get_randomly_filled_array(sz, 200));
+    
+    loc.set_category(1, 3, bit_array(sz, true));
+    loc.set_category(1, 4, get_randomly_filled_array(sz, 200));
+    
+    loc.set_category(2, 5, bit_array(sz, true));
+    loc.set_category(2, 6, get_randomly_filled_array(sz, 200));
+    loc.set_category(2, 7, get_randomly_filled_array(sz, 200));
+    
+    types::entries_t combs;
+    combs.push(0);
+    combs.push(1);
+    
+    bool exists;
+    
+    loc.keep_each(combs, &exists);
+    
+    assert(exists);
+    
+    std::cout << "OK - test_keep_each()" << std::endl;
+}
+
 void test_swap_category()
 {
     using namespace util;
@@ -111,6 +148,7 @@ void test_swap_category()
     assert(loc.n_categories() == 1);
     assert(loc.has_category(1));
     assert(!loc.has_category(0));
+    
     
     loc.set_category(1, 2, bit_array(100, true));
     

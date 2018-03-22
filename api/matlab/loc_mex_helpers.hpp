@@ -18,6 +18,7 @@ namespace util {
     void assert_isa(const mxArray *arr, unsigned int class_id, const char* id, const char* msg);
     
     util::types::entries_t copy_array_into_entries(const mxArray* src, uint32_t n_copy);
+    util::types::entries_t copy_array_into_entries(const mxArray* src);
     void copy_entries_into_array(const types::entries_t& src, mxArray* dest, uint32_t n_copy);
     mxArray* make_entries_into_array(const types::entries_t& src, uint32_t n_copy);
 }

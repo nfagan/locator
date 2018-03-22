@@ -8,6 +8,7 @@ test_dir = fullfile( outer_dir, 'test' );
 
 addpath( test_dir );
 
+loc_test_run( @loc_test_keepeach );
 loc_test_run( @loc_test_findall );
 loc_test_run( @loc_test_isfullcat );
 loc_test_run( @loc_test_fullcat );

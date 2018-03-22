@@ -31,9 +31,9 @@ public:
         uint32_t m_size_int;
     };
     
-    bit_array();
-    bit_array(uint32_t size);
-    bit_array(uint32_t size, bool fill_with);
+    explicit bit_array();
+    explicit bit_array(uint32_t size);
+    explicit bit_array(uint32_t size, bool fill_with);
     ~bit_array() noexcept;
     
     bit_array(const bit_array& other);

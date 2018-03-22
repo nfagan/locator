@@ -36,7 +36,8 @@ const util::op_map_t op_map({
     {"is_full_cat",       util::ops::IS_FULL_CATEGORY},
     {"get_rand_lab2",     util::ops::GET_RANDOM_LABEL2},
     {"swap_lab",          util::ops::SWAP_LABEL},
-    {"swap_cat",          util::ops::SWAP_CATEGORY}
+    {"swap_cat",          util::ops::SWAP_CATEGORY},
+    {"keep_each",         util::ops::KEEP_EACH}
 });
 
 void use_std_string(mxArray *plhs[], const mxArray *prhs[]);

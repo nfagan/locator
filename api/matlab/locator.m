@@ -207,6 +207,29 @@ classdef locator
       [I, C] = loc_findall( obj.id, categories );
     end
     
+    function [obj, I, C] = keepeach(obj, categories)
+      
+      %   KEEPEACH -- Retain combinations of labels in categories.
+      %
+      %     See also locator/findall
+      %
+      %     IN:
+      %       - `categories` (uint32)
+      %     OUT:
+      %       - `I` (cell array of uint32)
+      %       - `C` (cell array of uint32)
+      
+      if ( nargin < 2 )
+        categories = getcats( obj );
+      end
+      
+      [I, C] = loc_api( loc_opcodes('keep_each'), obj.id, uint32(categories) );
+      
+      if ( numel(categories) > 1 )
+        C = reshape( C, numel(categories), numel(C) / numel(categories) );
+      end
+    end
+    
     function cmbs = combs(obj, categories)
       
       %   COMBS -- Get present combinations of labels in categories.
@@ -895,6 +918,16 @@ classdef locator
       if ( ~isa(varargout{1}, 'locator') )
         varargout{1} = locator( varargout{1} );
       end
+    end
+    
+    function s = undefined()
+      
+      %   UNDEFINED -- Return the undefined label.
+      %
+      %     OUT:
+      %       - `s` (uint32)
+      
+      s = intmax( 'uint32' );      
     end
     
     function obj = loadobj(s)

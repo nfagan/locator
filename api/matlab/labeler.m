@@ -388,6 +388,47 @@ classdef labeler
       end
     end
     
+    function obj = requirecat(obj, categories)
+      
+      %   REQUIRECAT -- Add category if it does not exist.
+      %
+      %     See also locator/getcats, locator/setcat, locator/getlab
+      %
+      %     IN:
+      %       - `category` (char, cell array of strings)
+      
+      if ( ~iscell(categories) )
+        categories = { categories };
+      end
+      
+      num_cats = tryget( obj.categories, categories );
+      
+      missing = find( num_cats == locator.undefined() );
+      
+      for i = 1:numel(missing)
+        cat = randlab( obj.loc );
+        requirecat( obj.loc, cat );
+        set( obj.categories, categories{missing(i)}, cat );
+      end
+    end
+    
+    function obj = rmcat(obj, categories)
+      
+      %   RMCAT -- Remove category and all labels within.
+      %
+      %     See also labeler/requirecat
+      %
+      %     IN:
+      %       - `category` (uint32, char, cell array of strings)
+      
+      if ( ~isnumeric(categories) )
+        categories = get( obj.categories, categories );
+      end
+      
+      rmcat( obj.loc, categories );
+      remove( obj.categories, categories );
+    end
+    
     function obj = one(obj)
       
       %   ONE -- Retain a single row, collapsing non-uniform categories.
@@ -478,6 +519,46 @@ classdef labeler
       [I, C] = findall( obj.loc, categories );
     end
     
+    function [obj, I, C] = keepeach(obj, categories)
+      
+      %   KEEPEACH -- Retain combinations of labels in categories.
+      %
+      %     See also locator/findall
+      %
+      %     IN:
+      %       - `categories` (uint32, char, cell array of strings)
+      %     OUT:
+      %       - `obj` (labeler) -- Modified instance.
+      %       - `I` (cell array of uint32)
+      %       - `C` (cell array of uint32)
+      
+      if ( nargin == 1 )
+        [obj.loc, I, C] = keepeach( obj.loc, getcats(obj.loc) );
+        return;
+      end
+      
+      if ( ~isnumeric(categories) )
+        categories = get( obj.categories, categories );
+      end
+      
+      [obj.loc, I, C] = keepeach( obj.loc, categories );
+      
+      current_labs = sort( values(obj.labels) );
+      all_labs = getlabs( obj.loc );
+      
+      missing_labs = setdiff( current_labs, all_labs );
+      collapsed_labs = setdiff( all_labs, current_labs );
+      
+      remove( obj.labels, missing_labs );
+      
+      for i = 1:numel(collapsed_labs)
+        lab = collapsed_labs(i);
+        str_cat = strwhichcat( obj, lab );
+        str_lab = sprintf( obj.COLLAPSED_PATTERN, str_cat );
+        set( obj.labels, str_lab, lab );
+      end
+    end
+    
     function obj = append(obj, B)
       
       %   APPEND -- Append one labeler to another.
@@ -493,16 +574,6 @@ classdef labeler
         error( 'Cannot append objects of class "%s".', class(B) );
       end
       
-      if ( isempty(B) )
-        return;
-      end
-      
-      if ( isempty(obj) )
-        destroy( obj );
-        obj = copy( B );
-        return;
-      end
-      
       if ( ncats(obj) ~= ncats(B) )
         error( 'Categories do not match.' );
       end
@@ -512,6 +583,16 @@ classdef labeler
       
       if ( ~all(strcmp(str_cats_a, str_cats_b)) )
         error( 'Categories do not match.' );
+      end
+      
+      if ( isempty(B) )
+        return;
+      end
+      
+      if ( isempty(obj) )
+        destroy( obj );
+        obj = copy( B );
+        return;
       end
       
       B = copy( B );

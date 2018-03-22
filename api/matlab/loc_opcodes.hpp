@@ -40,8 +40,9 @@ namespace util {
         constexpr uint32_t GET_RANDOM_LABEL2 =    30u;
         constexpr uint32_t SWAP_LABEL =           31u;
         constexpr uint32_t SWAP_CATEGORY =        32u;
+        constexpr uint32_t KEEP_EACH =            33u;
         //  how many ops
-        constexpr uint32_t N_OPS =                33u;
+        constexpr uint32_t N_OPS =                34u;
     };
     
     typedef std::unordered_map<std::string, uint32_t> op_map_t;
